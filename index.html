@@ -142,12 +142,19 @@ input,select,textarea{background:#ffffff;border-color:#cbd5e1;color:#111827}
 pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;color:#111827}.btn{box-shadow:none}
 </style>
 
+
+<style>
+#reconcileResults .card{box-shadow:none}
+@media(max-width:700px){
+  #reconcilePanel .row .btn{width:100%}
+}
+</style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <div class="brand">Commerce OS</div>
-    <div class="sub">Prototype v0.4 • light theme • configurable by design</div>
+    <div class="sub">Prototype v0.5 • reconciliation-first • configurable by design</div>
     <div class="nav" id="nav"></div>
     <div class="card" style="margin-top:18px">
       <div class="small muted">Prototype rule</div>
@@ -211,13 +218,23 @@ pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;colo
 </div></div>
 <input id="inventoryImport" type="file" accept=".json,.csv,application/json,text/csv" onchange="importInventoryFile(event)" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"/>
 <div id="importMsg" class="small muted" style="margin:8px 0">Import accepts JSON or CSV.</div>
+<div id="reconcilePanel" class="card" style="display:none;margin:12px 0;background:#fbfdff">
+  <h3>Reconcile imported inventory</h3>
+  <div class="muted small">Nothing changes until you approve a reconciliation action.</div>
+  <div id="reconcileSummary" class="small" style="margin:10px 0"></div>
+  <div id="reconcileResults"></div>
+  <div class="row" style="margin-top:12px">
+    <button class="btn good" onclick="applyReconciliation()">Apply approved changes</button>
+    <button class="btn secondary" onclick="cancelReconciliation()">Cancel</button>
+  </div>
+</div>
 <div id="addItemPanel" class="card" style="display:none;margin:10px 0;background:#0b1220">
   <h3>Add inventory item</h3>
   <div class="grid g2">
     <div><label>Title</label><input id="newTitle"/></div>
     <div><label>Brand</label><input id="newBrand"/></div>
     <div><label>Category</label><input id="newCategory"/></div>
-    <div><label>Pricing</label><input id="newAsk" type="number"/></div><div><label>Item Cost</label><input id="newCost" type="number" step="0.01" placeholder="0.00"/></div>
+    <div><label>Pricing</label><input id="newAsk" type="number"/></div><div><label>Item Cost</label><input id="newCost" type="number" step="0.01" placeholder="0.00"/></div><div><label>Item Photo</label><input id="newPhoto" type="file" accept="image/*" capture="environment"/></div>
     <div><label>Quantity</label><input id="newQty" value="1"/></div>
     <div><label>Status</label><select id="newStatus"><option>Active</option><option>Research / Hold</option><option>Unlisted</option><option>Sold</option></select></div>
   </div>
@@ -339,6 +356,11 @@ pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;colo
       <div class="spacer"></div>
       <div class="spacer"></div>
 <div class="card">
+  <h3>Inventory reconciliation</h3>
+  <div class="small muted">Canonical inventory can be built from photos, manual additions, selling-app imports, and uploaded inventory lists. Imports are reconciled first; nothing overwrites inventory automatically. Future marketplace connectors can also bring listing photos and platform IDs into the same matching engine.</div>
+</div>
+<div class="spacer"></div>
+<div class="card">
   <h3>Pricing model</h3>
   <div class="small muted">“Pricing” is the product/listing price field. “Item Cost” is what you paid for the item. Platform-specific pricing can still differ by marketplace.</div>
 </div>
@@ -442,7 +464,7 @@ function renderInventory(){
   const cards=document.getElementById('inventoryCards'); cards.innerHTML="";
   state.inventory.forEach(x=>{
     b.innerHTML+=`<tr><td><b>${x.title}</b><div class="muted small">${x.id} • ${x.brand}</div></td><td>${x.status}</td><td>$${x.ask}</td><td>${x.daysListed}d</td><td>${x.marketplaces.join(", ")}</td><td>${x.recommendedAction}<div class="muted small">${x.recommendedRange}</div></td></tr>`;
-    cards.innerHTML+=`<div class="inventory-card"><div class="title">${x.title}</div><div class="meta"><span class="pill">${x.status}</span><span class="pill">${x.brand}</span><span class="pill">${x.quantity} qty</span></div><div class="kv" style="grid-template-columns:1fr 1fr 1fr"><div><span>PRICING</span><b>$${x.ask}</b></div><div><span>ITEM COST</span><b>$${Number(x.itemCost||0).toFixed(2)}</b></div><div><span>AGE</span><b>${x.daysListed} days</b></div></div><div class="small muted">${x.marketplaces.join(" • ")}</div><div class="small" style="margin-top:6px"><b>Gross spread:</b> $${Math.max(0,Number(x.ask||0)-Number(x.itemCost||0)).toFixed(2)}</div><div class="actionbox"><div class="small muted">RECOMMENDED ACTION</div><b>${x.recommendedAction}</b><div class="small muted" style="margin-top:3px">${x.recommendedRange}</div></div><button class="btn secondary" onclick="openItem('${x.id}')">Open item</button></div>`;
+    cards.innerHTML+=`<div class="inventory-card">${x.imageData?`<img src="${x.imageData}" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:10px">`:''}<div class="title">${x.title}</div><div class="meta"><span class="pill">${x.status}</span><span class="pill">${x.brand}</span><span class="pill">${x.quantity} qty</span></div><div class="kv" style="grid-template-columns:1fr 1fr 1fr"><div><span>PRICING</span><b>$${x.ask}</b></div><div><span>ITEM COST</span><b>$${Number(x.itemCost||0).toFixed(2)}</b></div><div><span>AGE</span><b>${x.daysListed} days</b></div></div><div class="small muted">${x.marketplaces.join(" • ")}</div><div class="small" style="margin-top:6px"><b>Gross spread:</b> $${Math.max(0,Number(x.ask||0)-Number(x.itemCost||0)).toFixed(2)}</div><div class="actionbox"><div class="small muted">RECOMMENDED ACTION</div><b>${x.recommendedAction}</b><div class="small muted" style="margin-top:3px">${x.recommendedRange}</div></div><button class="btn secondary" onclick="openItem('${x.id}')">Open item</button></div>`;
   });
 }
 function renderQueues(){
@@ -524,9 +546,12 @@ function nextProductId(){
   const nums=state.inventory.map(x=>parseInt(String(x.id||'').replace(/\D/g,''))||0);
   return 'P-'+String(Math.max(0,...nums)+1).padStart(4,'0');
 }
-function addItem(){
+async function addItem(){
   const title=document.getElementById('newTitle').value.trim();
   if(!title){alert('Title is required.');return;}
+  let imageData='';
+  const pf=document.getElementById('newPhoto').files[0];
+  if(pf){imageData=await fileToDataURL(pf);}
   const item={
     id:nextProductId(),
     title,
@@ -541,11 +566,111 @@ function addItem(){
     recommendedAction:document.getElementById('newAction').value.trim()||'Review',
     recommendedRange:'',
     confidence:'Low',
-    quantity:document.getElementById('newQty').value||'1'
+    quantity:document.getElementById('newQty').value||'1',
+    imageData
   };
   state.inventory.unshift(item); persist(); renderAll(); hideAddItem();
   ['newTitle','newBrand','newCategory','newAsk','newCost','newMarkets','newAction'].forEach(id=>document.getElementById(id).value='');
 }
+
+let pendingImport=[];
+let reconciliationPlan=[];
+
+function fileToDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file);
+  });
+}
+function normText(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+function tokenSet(s){return new Set(normText(s).split(/\s+/).filter(Boolean));}
+function similarity(a,b){
+  const A=tokenSet(a), B=tokenSet(b);
+  if(!A.size||!B.size)return 0;
+  let inter=0; A.forEach(x=>{if(B.has(x))inter++});
+  return inter/Math.max(A.size,B.size);
+}
+function findBestMatch(item){
+  let best=null,score=0;
+  state.inventory.forEach(x=>{
+    let s=similarity(item.title,x.title);
+    if(item.brand && x.brand && normText(item.brand)===normText(x.brand)) s+=0.15;
+    if(item.category && x.category && normText(item.category)===normText(x.category)) s+=0.05;
+    if(item.id && x.id && String(item.id)===String(x.id)) s=1;
+    if(s>score){score=s;best=x;}
+  });
+  return {best,score:Math.min(score,1)};
+}
+function buildReconciliation(items){
+  pendingImport=items;
+  reconciliationPlan=items.map((item,idx)=>{
+    const {best,score}=findBestMatch(item);
+    let status='NEW',action='ADD';
+    if(best && score>=0.78){status='LIKELY MATCH';action='MERGE';}
+    else if(best && score>=0.5){status='REVIEW MATCH';action='HOLD';}
+    return {idx,item,best,score,status,action};
+  });
+  renderReconciliation();
+}
+function renderReconciliation(){
+  const p=document.getElementById('reconcilePanel'); p.style.display='block';
+  const r=document.getElementById('reconcileResults');
+  const counts={match:0,review:0,new:0};
+  reconciliationPlan.forEach(x=>{
+    if(x.status==='LIKELY MATCH')counts.match++;
+    else if(x.status==='REVIEW MATCH')counts.review++;
+    else counts.new++;
+  });
+  document.getElementById('reconcileSummary').innerHTML=`Likely matches: <b>${counts.match}</b> • Needs review: <b>${counts.review}</b> • New: <b>${counts.new}</b>`;
+  r.innerHTML=reconciliationPlan.map((x,i)=>{
+    const cand=x.best?`<div class="small muted">Candidate: ${x.best.title}</div>`:'';
+    const diffs=[];
+    if(x.best){
+      if(Number(x.item.ask||0)!==Number(x.best.ask||0))diffs.push(`Pricing ${x.best.ask} → ${x.item.ask}`);
+      if(Number(x.item.itemCost||0)!==Number(x.best.itemCost||0))diffs.push(`Item Cost ${x.best.itemCost||0} → ${x.item.itemCost||0}`);
+      if(String(x.item.status)!==String(x.best.status))diffs.push(`Status ${x.best.status} → ${x.item.status}`);
+      if(String(x.item.quantity)!==String(x.best.quantity))diffs.push(`Qty ${x.best.quantity} → ${x.item.quantity}`);
+    }
+    return `<div class="card" style="margin:8px 0;background:#fff">
+      <div class="row" style="justify-content:space-between"><b>${x.item.title}</b><span class="pill">${x.status}</span></div>
+      ${cand}
+      <div class="small" style="margin-top:6px">${diffs.length?diffs.join(' • '):'No major field differences detected.'}</div>
+      <label>Action</label>
+      <select onchange="setReconAction(${i},this.value)">
+        <option value="MERGE" ${x.action==='MERGE'?'selected':''}>Merge into match</option>
+        <option value="ADD" ${x.action==='ADD'?'selected':''}>Import as new item</option>
+        <option value="HOLD" ${x.action==='HOLD'?'selected':''}>Hold for manual review</option>
+        <option value="IGNORE" ${x.action==='IGNORE'?'selected':''}>Ignore</option>
+      </select>
+    </div>`;
+  }).join('');
+}
+function setReconAction(i,v){reconciliationPlan[i].action=v;}
+function mergeItem(target,src){
+  const fields=['title','brand','category','status','ask','itemCost','daysListed','season','recommendedAction','recommendedRange','confidence','quantity','imageData'];
+  fields.forEach(k=>{
+    if(src[k]!==undefined && src[k]!==null && src[k]!=='' && !(k==='itemCost'&&Number(src[k])===0)) target[k]=src[k];
+  });
+  if(src.marketplaces&&src.marketplaces.length){
+    target.marketplaces=[...new Set([...(target.marketplaces||[]),...src.marketplaces])];
+  }
+}
+function applyReconciliation(){
+  let merged=0,added=0,held=0;
+  reconciliationPlan.forEach(x=>{
+    if(x.action==='MERGE' && x.best){mergeItem(x.best,x.item);merged++;}
+    else if(x.action==='ADD'){state.inventory.unshift(x.item);added++;}
+    else if(x.action==='HOLD'){held++;}
+  });
+  persist();renderAll();
+  document.getElementById('reconcilePanel').style.display='none';
+  document.getElementById('importMsg').textContent=`Reconciliation complete: ${merged} merged, ${added} added, ${held} held for review.`;
+  pendingImport=[];reconciliationPlan=[];
+}
+function cancelReconciliation(){
+  pendingImport=[];reconciliationPlan=[];document.getElementById('reconcilePanel').style.display='none';
+  document.getElementById('importMsg').textContent='Import cancelled. No inventory changes were made.';
+}
+
 function parseCSV(text){
   const lines=text.split(/\r?\n/).filter(x=>x.trim());
   if(lines.length<2)return [];
@@ -582,7 +707,8 @@ function normalizeImportedItem(o,idx){
     recommendedAction:get('recommendedaction','recommended action','action')||'Review',
     recommendedRange:get('recommendedrange','recommended range')||'',
     confidence:get('confidence')||'Low',
-    quantity:get('quantity','qty')||'1'
+    quantity:get('quantity','qty')||'1',
+    imageData:get('imagedata','image data','image','photo','photo url','image url')||''
   };
 }
 async function importInventoryFile(ev){
@@ -594,10 +720,8 @@ async function importInventoryFile(ev){
     }else incoming=parseCSV(text);
     const normalized=incoming.map(normalizeImportedItem).filter(x=>x.title);
     if(!normalized.length)throw new Error('No recognizable inventory rows found.');
-    const mode=confirm(`Found ${normalized.length} item(s). Tap OK to ADD them to current inventory, or Cancel to REPLACE the current inventory.`);
-    state.inventory=mode?[...normalized,...state.inventory]:normalized;
-    persist(); renderAll();
-    document.getElementById('importMsg').textContent=`Imported ${normalized.length} item(s) successfully.`;
+    buildReconciliation(normalized);
+    document.getElementById('importMsg').textContent=`Loaded ${normalized.length} item(s) for reconciliation.`;
   }catch(e){
     document.getElementById('importMsg').textContent='Import failed: '+e.message;
   }finally{ev.target.value='';}
