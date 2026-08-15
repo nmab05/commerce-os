@@ -4,9 +4,9 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Commerce OS Prototype</title>
-<meta name="theme-color" content="#0b1220">
+<meta name="theme-color" content="#f6f7fb">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Commerce OS">
 <style>
 :root{
@@ -124,12 +124,30 @@ body{overflow-x:hidden}
   }
 }
 </style>
+
+<style>
+:root{
+  --bg:#f6f7fb;--panel:#ffffff;--panel2:#f8fafc;--muted:#667085;--text:#111827;
+  --accent:#2563eb;--good:#16a34a;--warn:#d97706;--bad:#dc2626;--line:#d8dee9;
+}
+body{background:#f6f7fb;color:var(--text)}
+.sidebar{background:#ffffff;border-right:1px solid var(--line)}
+.card,.inventory-card{background:#ffffff !important;border-color:var(--line) !important;color:var(--text) !important}
+.nav button{color:#475467}.nav button.active,.nav button:hover{background:#eef2ff;color:#111827}
+.badge,.pill{background:#eef2f7;color:#344054}.pill.good{background:#dcfce7;color:#166534}.pill.warn{background:#fef3c7;color:#92400e}
+input,select,textarea{background:#ffffff;border-color:#cbd5e1;color:#111827}
+.inventory-card .kv div,.inventory-card .actionbox{background:#f8fafc !important;border-color:#e2e8f0 !important}
+.mobile-bottom-nav{background:rgba(255,255,255,.97) !important;border-top-color:#d8dee9 !important}
+.mobile-bottom-nav button{color:#667085 !important}.mobile-bottom-nav button.active{color:#111827 !important;background:#eef2ff !important}
+pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;color:#111827}.btn{box-shadow:none}
+</style>
+
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <div class="brand">Commerce OS</div>
-    <div class="sub">Prototype v0.3.1 • import fix • configurable by design</div>
+    <div class="sub">Prototype v0.4 • light theme • configurable by design</div>
     <div class="nav" id="nav"></div>
     <div class="card" style="margin-top:18px">
       <div class="small muted">Prototype rule</div>
@@ -172,7 +190,7 @@ body{overflow-x:hidden}
           <button class="btn secondary" id="sourceMoreBtn" onclick="toggleSourceDetails()" style="margin-top:10px">Add / edit economics</button>
           <div id="sourceSecondary" class="source-secondary">
           <label>What do you think it is? (optional)</label><input id="sourceTitle" placeholder="e.g., Farm Rio maxi dress"/>
-          <label>Store price</label><input type="number" id="sourceCost" value="20"/>
+          <label>Item cost</label><input type="number" id="sourceCost" value="20"/>
           <label>Expected sale price</label><input type="number" id="sourceSale" value="75"/>
           <label>Estimated fees + shipping</label><input type="number" id="sourceFees" value="20"/>
           <label>Estimated owner minutes</label><input type="number" id="sourceMinutes" value="15"/>
@@ -199,7 +217,7 @@ body{overflow-x:hidden}
     <div><label>Title</label><input id="newTitle"/></div>
     <div><label>Brand</label><input id="newBrand"/></div>
     <div><label>Category</label><input id="newCategory"/></div>
-    <div><label>Ask</label><input id="newAsk" type="number"/></div>
+    <div><label>Pricing</label><input id="newAsk" type="number"/></div><div><label>Item Cost</label><input id="newCost" type="number" step="0.01" placeholder="0.00"/></div>
     <div><label>Quantity</label><input id="newQty" value="1"/></div>
     <div><label>Status</label><select id="newStatus"><option>Active</option><option>Research / Hold</option><option>Unlisted</option><option>Sold</option></select></div>
   </div>
@@ -207,7 +225,7 @@ body{overflow-x:hidden}
   <label>Recommended action</label><input id="newAction" placeholder="Optimize title + price test"/>
   <div class="row" style="margin-top:10px"><button class="btn good" onclick="addItem()">Save item</button><button class="btn secondary" onclick="hideAddItem()">Cancel</button></div>
 </div>
-        <table><thead><tr><th>Item</th><th>Status</th><th>Ask</th><th>Age</th><th>Channels</th><th>Recommended action</th></tr></thead><tbody id="inventoryBody"></tbody></table><div id="inventoryCards" class="inventory-cards"></div>
+        <table><thead><tr><th>Item</th><th>Status</th><th>Pricing</th><th>Age</th><th>Channels</th><th>Recommended action</th></tr></thead><tbody id="inventoryBody"></tbody></table><div id="inventoryCards" class="inventory-cards"></div>
       </div>
     </section>
 
@@ -283,7 +301,7 @@ body{overflow-x:hidden}
         <h3>Add outcome</h3>
         <div class="grid g4">
           <div><label>Revenue</label><input id="mRev" type="number" value="100"/></div>
-          <div><label>COGS + fees + shipping</label><input id="mCost" type="number" value="45"/></div>
+          <div><label>Item cost + fees + shipping</label><input id="mCost" type="number" value="45"/></div>
           <div><label>Owner minutes</label><input id="mMin" type="number" value="15"/></div>
           <div><label>Note</label><input id="mNote" placeholder="Sold Farm Rio dress"/></div>
         </div>
@@ -321,6 +339,11 @@ body{overflow-x:hidden}
       <div class="spacer"></div>
       <div class="spacer"></div>
 <div class="card">
+  <h3>Pricing model</h3>
+  <div class="small muted">“Pricing” is the product/listing price field. “Item Cost” is what you paid for the item. Platform-specific pricing can still differ by marketplace.</div>
+</div>
+<div class="spacer"></div>
+<div class="card">
   <h3>Data backup & restore</h3>
   <div class="muted small">Back up inventory, settings, money outcomes, and blind spots in one file.</div>
   <div class="row" style="margin-top:10px">
@@ -350,7 +373,7 @@ function init(){
   } catch(e) {
     // iOS file preview may restrict storage; app still works with embedded defaults.
   }
-  buildNav(); buildMobileNav(); renderAll();
+  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;}); buildNav(); buildMobileNav(); renderAll();
 }
 function persist(){try{localStorage.setItem('commerceState',JSON.stringify(state));}catch(e){}}
 function buildNav(){
@@ -377,17 +400,19 @@ function openItem(id){
   const action=prompt(`ITEM
 ${x.title}
 
-Ask: $${x.ask}
+Pricing: $${x.ask}
+Item Cost: $${Number(x.itemCost||0).toFixed(2)}
 Status: ${x.status}
 Channels: ${x.marketplaces.join(", ")}
 
-Type EDIT to change ask/status, SOLD to mark sold, or leave blank to close.`);
+Type EDIT to change pricing/cost/status, SOLD to mark sold, or leave blank to close.`);
   if(!action)return;
   if(action.toUpperCase()==='SOLD'){
     x.status='Sold'; persist(); renderAll(); return;
   }
   if(action.toUpperCase()==='EDIT'){
-    const ask=prompt('Ask price', x.ask); if(ask!==null && ask!=='') x.ask=Number(ask);
+    const ask=prompt('Pricing', x.ask); if(ask!==null && ask!=='') x.ask=Number(ask);
+    const cost=prompt('Item Cost', x.itemCost||0); if(cost!==null && cost!=='') x.itemCost=Number(cost);
     const status=prompt('Status', x.status); if(status) x.status=status;
     const rec=prompt('Recommended action', x.recommendedAction||''); if(rec!==null) x.recommendedAction=rec;
     persist(); renderAll();
@@ -417,7 +442,7 @@ function renderInventory(){
   const cards=document.getElementById('inventoryCards'); cards.innerHTML="";
   state.inventory.forEach(x=>{
     b.innerHTML+=`<tr><td><b>${x.title}</b><div class="muted small">${x.id} • ${x.brand}</div></td><td>${x.status}</td><td>$${x.ask}</td><td>${x.daysListed}d</td><td>${x.marketplaces.join(", ")}</td><td>${x.recommendedAction}<div class="muted small">${x.recommendedRange}</div></td></tr>`;
-    cards.innerHTML+=`<div class="inventory-card"><div class="title">${x.title}</div><div class="meta"><span class="pill">${x.status}</span><span class="pill">${x.brand}</span><span class="pill">${x.quantity} qty</span></div><div class="kv"><div><span>ASK</span><b>$${x.ask}</b></div><div><span>AGE</span><b>${x.daysListed} days</b></div></div><div class="small muted">${x.marketplaces.join(" • ")}</div><div class="actionbox"><div class="small muted">RECOMMENDED ACTION</div><b>${x.recommendedAction}</b><div class="small muted" style="margin-top:3px">${x.recommendedRange}</div></div><button class="btn secondary" onclick="openItem('${x.id}')">Open item</button></div>`;
+    cards.innerHTML+=`<div class="inventory-card"><div class="title">${x.title}</div><div class="meta"><span class="pill">${x.status}</span><span class="pill">${x.brand}</span><span class="pill">${x.quantity} qty</span></div><div class="kv" style="grid-template-columns:1fr 1fr 1fr"><div><span>PRICING</span><b>$${x.ask}</b></div><div><span>ITEM COST</span><b>$${Number(x.itemCost||0).toFixed(2)}</b></div><div><span>AGE</span><b>${x.daysListed} days</b></div></div><div class="small muted">${x.marketplaces.join(" • ")}</div><div class="small" style="margin-top:6px"><b>Gross spread:</b> $${Math.max(0,Number(x.ask||0)-Number(x.itemCost||0)).toFixed(2)}</div><div class="actionbox"><div class="small muted">RECOMMENDED ACTION</div><b>${x.recommendedAction}</b><div class="small muted" style="margin-top:3px">${x.recommendedRange}</div></div><button class="btn secondary" onclick="openItem('${x.id}')">Open item</button></div>`;
   });
 }
 function renderQueues(){
@@ -446,7 +471,7 @@ function analyzeSource(){
 function priceCalc(){
   const net=+targetNet.value,fee=+feePct.value/100,ship=+shipCost.value,offer=+offerPct.value/100;
   const expectedSale=(net+ship)/(1-fee); const ask=expectedSale/(1-offer);
-  priceResult.innerHTML=`Recommended list ask: <b>$${ask.toFixed(2)}</b><br><span class="muted small">Designed so an expected ${offerPct.value}% offer can still target about $${net.toFixed(0)} net before COGS.</span>`;
+  priceResult.innerHTML=`Recommended listing price: <b>$${ask.toFixed(2)}</b><br><span class="muted small">Designed so an expected ${offerPct.value}% offer can still target about $${net.toFixed(0)} net before COGS.</span>`;
 }
 function generateListing(){
   const item=listingItem.value.trim(),cond=listingCondition.value.trim(),details=listingDetails.value.trim(),ch=listingChannel.value;
@@ -509,6 +534,7 @@ function addItem(){
     category:document.getElementById('newCategory').value.trim()||'Other',
     status:document.getElementById('newStatus').value,
     ask:Number(document.getElementById('newAsk').value||0),
+    itemCost:Number(document.getElementById('newCost').value||0),
     daysListed:0,
     season:'Evergreen',
     marketplaces:document.getElementById('newMarkets').value.split(',').map(s=>s.trim()).filter(Boolean),
@@ -518,7 +544,7 @@ function addItem(){
     quantity:document.getElementById('newQty').value||'1'
   };
   state.inventory.unshift(item); persist(); renderAll(); hideAddItem();
-  ['newTitle','newBrand','newCategory','newAsk','newMarkets','newAction'].forEach(id=>document.getElementById(id).value='');
+  ['newTitle','newBrand','newCategory','newAsk','newCost','newMarkets','newAction'].forEach(id=>document.getElementById(id).value='');
 }
 function parseCSV(text){
   const lines=text.split(/\r?\n/).filter(x=>x.trim());
@@ -548,7 +574,8 @@ function normalizeImportedItem(o,idx){
     brand:get('brand')||'Unknown',
     category:get('category','department')||'Other',
     status:get('status')||'Active',
-    ask:Number(get('ask','price','list price','listing price','order price')||0),
+    ask:Number(get('ask','price','list price','listing price','order price','pricing')||0),
+    itemCost:Number(get('itemcost','item cost','cost','cogs','purchase cost')||0),
     daysListed:Number(get('dayslisted','days listed','age','listing age')||0),
     season:get('season','seasonality')||'Evergreen',
     marketplaces:Array.isArray(markets)?markets:String(markets||'').split(/[;,|]/).map(s=>s.trim()).filter(Boolean),
