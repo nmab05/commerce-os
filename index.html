@@ -56,7 +56,7 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 </style>
 </head>
 <body>
-<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.1 RC • workflow polish • configurable by design</div></header>
+<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.2 • standalone release • configurable by design</div></header>
 <main>
 <section id="Today" class="page active">
   <div class="grid g4">
@@ -140,7 +140,12 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 <section id="Lab" class="page">
   <div class="card"><h3>Rules</h3><label>Minimum expected sourcing profit</label><input id="ruleMinProfit" type="number"><label>High-value threshold</label><input id="ruleHighValue" type="number"><label>Max routine markdown %</label><input id="ruleMarkdown" type="number"><label>Daily ad test cap</label><input id="ruleAdCap" type="number"><label><input id="ruleLikeness" type="checkbox" style="width:auto"> Enable likeness / voice features</label><button class="btn" onclick="saveRules()">Save rules</button></div>
   <div class="spacer"></div>
-  <div class="card"><h3>Release candidate checklist</h3><div class="small muted">Pass these before calling the standalone prototype complete.</div>
+  <div class="card">
+<h3>Standalone release status</h3>
+<div class="small"><span class="pill good">CORE LOGIC AUDITED</span></div>
+<div class="small muted" style="margin-top:8px">The standalone prototype includes inventory persistence, edit/sold workflows, photo intake, marketplace-aware file imports, field-level reconciliation, bulk actions, activity history, money tracking, export, and backup/restore. Live marketplace APIs and live AI services remain the integration phase.</div>
+</div><div class="spacer"></div>
+<div class="card"><h3>Release candidate checklist</h3><div class="small muted">Pass these before calling the standalone prototype complete.</div>
 <label><input type="checkbox" style="width:auto"> Add/edit an item and confirm it survives refresh</label>
 <label><input type="checkbox" style="width:auto"> Mark sold and verify active count drops</label>
 <label><input type="checkbox" style="width:auto"> Add multiple photos and reopen the item</label>
@@ -173,7 +178,7 @@ function loadState(){
   if(!state) state=JSON.parse(JSON.stringify(DEFAULT_STATE));
   if(!state.photoInbox)state.photoInbox=[];
   if(!state.activityLog)state.activityLog=[];
-  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};
+  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};state.schemaVersion="1.2";
   state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});
 }
 function persist(){try{localStorage.setItem("commerceState",JSON.stringify(state))}catch(e){}}
@@ -248,8 +253,8 @@ function renderRules(){ruleMinProfit.value=state.settings.minimumExpectedProfit;
 function saveRules(){state.settings.minimumExpectedProfit=+ruleMinProfit.value;state.settings.highValueThreshold=+ruleHighValue.value;state.settings.maxRoutineMarkdownPct=+ruleMarkdown.value;state.settings.adSpendDailyCap=+ruleAdCap.value;state.settings.likenessVoiceOptIn=ruleLikeness.checked;log("Updated rules");persist();renderAll()}
 function renderActivity(){activityLog.innerHTML=state.activityLog.length?state.activityLog.slice(0,40).map(a=>`<div class="activity"><b>${a.action}</b><div class="small">${a.title||""}</div><div class="small muted">${new Date(a.at).toLocaleString()} ${a.details||""}</div></div>`).join(""):'<div class="small muted">No activity yet.</div>'}
 function clearActivity(){if(confirm("Clear activity history?")){state.activityLog=[];persist();renderActivity()}}
-function exportBackup(){download("commerce_os_backup.json",JSON.stringify({version:"1.1-rc",state},null,2))}
-async function restoreBackupFile(e){try{const o=JSON.parse((await e.target.files[0].text()).replace(/^\ufeff/,""));if(!o.state)throw new Error("Invalid backup");state=o.state;persist();renderAll();alert("Backup restored.")}catch(err){alert(err.message)}e.target.value=""}
+function exportBackup(){download("commerce_os_backup.json",JSON.stringify({version:"1.2",state},null,2))}
+async function restoreBackupFile(e){try{const f=e.target.files[0];if(!f)return;const o=JSON.parse((await f.text()).replace(/^\ufeff/,""));if(!o.state||!Array.isArray(o.state.inventory)||!o.state.settings)throw new Error("Invalid Commerce OS backup.");state=o.state;if(!state.photoInbox)state.photoInbox=[];if(!state.activityLog)state.activityLog=[];if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});persist();renderAll();toastMsg("Backup restored.")}catch(err){toastMsg(err.message)}e.target.value=""}
 
 document.addEventListener("DOMContentLoaded",init);
 </script>
