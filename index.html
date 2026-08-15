@@ -164,12 +164,19 @@ pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;colo
 .recon-choice button{border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#344054;padding:8px;font-size:12px}
 .recon-choice button.selected{background:#e0ecff;color:#1d4ed8;border-color:#7aa2f7;font-weight:700}
 </style>
+
+<style>
+#itemModal .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+#itemModal .summary-cell{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px}
+#itemModal .summary-cell span{display:block;font-size:10px;color:#667085;text-transform:uppercase}
+@media(max-width:700px){#itemModal .row .btn{flex:1}}
+</style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <div class="brand">Commerce OS</div>
-    <div class="sub">Prototype v0.6 • field-level reconciliation • configurable by design</div>
+    <div class="sub">Prototype v0.7 • item controls • configurable by design</div>
     <div class="nav" id="nav"></div>
     <div class="card" style="margin-top:18px">
       <div class="small muted">Prototype rule</div>
@@ -410,7 +417,7 @@ function init(){
   } catch(e) {
     // iOS file preview may restrict storage; app still works with embedded defaults.
   }
-  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;}); buildNav(); buildMobileNav(); renderAll();
+  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.marketplaceIds)x.marketplaceIds={};if(x.notes===undefined)x.notes='';}); buildNav(); buildMobileNav(); renderAll();
 }
 function persist(){try{localStorage.setItem('commerceState',JSON.stringify(state));}catch(e){}}
 function buildNav(){
@@ -432,390 +439,55 @@ function toggleSourceDetails(){
   const el=document.getElementById('sourceSecondary');el.classList.toggle('open');
   document.getElementById('sourceMoreBtn').textContent=el.classList.contains('open')?'Hide economics':'Add / edit economics';
 }
+
+let currentItemId=null;
+function marketplaceIdsToText(obj){return Object.entries(obj||{}).map(([k,v])=>`${k}: ${v}`).join("\n");}
+function textToMarketplaceIds(text){
+  const out={}; String(text||"").split(/\r?\n/).forEach(line=>{
+    const i=line.indexOf(":"); if(i>0){const k=line.slice(0,i).trim(),v=line.slice(i+1).trim();if(k&&v)out[k]=v;}
+  }); return out;
+}
 function openItem(id){
   const x=state.inventory.find(i=>i.id===id); if(!x)return;
-  const action=prompt(`ITEM
-${x.title}
-
-Pricing: $${x.ask}
-Item Cost: $${Number(x.itemCost||0).toFixed(2)}
-Status: ${x.status}
-Channels: ${x.marketplaces.join(", ")}
-
-Type EDIT to change pricing/cost/status, SOLD to mark sold, or leave blank to close.`);
-  if(!action)return;
-  if(action.toUpperCase()==='SOLD'){
-    x.status='Sold'; persist(); renderAll(); return;
-  }
-  if(action.toUpperCase()==='EDIT'){
-    const ask=prompt('Pricing', x.ask); if(ask!==null && ask!=='') x.ask=Number(ask);
-    const cost=prompt('Item Cost', x.itemCost||0); if(cost!==null && cost!=='') x.itemCost=Number(cost);
-    const status=prompt('Status', x.status); if(status) x.status=status;
-    const rec=prompt('Recommended action', x.recommendedAction||''); if(rec!==null) x.recommendedAction=rec;
-    persist(); renderAll();
-  }
+  currentItemId=id;
+  modalTitle.textContent=x.title;
+  modalPhotoWrap.innerHTML=x.imageData?`<img src="${x.imageData}" style="width:100%;max-height:280px;object-fit:cover;border-radius:12px">`:"";
+  const gross=Math.max(0,Number(x.ask||0)-Number(x.itemCost||0));
+  modalSummary.innerHTML=`<div class="summary-grid">
+    <div class="summary-cell"><span>Pricing</span><b>$${Number(x.ask||0).toFixed(2)}</b></div>
+    <div class="summary-cell"><span>Item Cost</span><b>$${Number(x.itemCost||0).toFixed(2)}</b></div>
+    <div class="summary-cell"><span>Status</span><b>${x.status||"—"}</b></div>
+    <div class="summary-cell"><span>Quantity</span><b>${x.quantity||"—"}</b></div>
+    <div class="summary-cell"><span>Age</span><b>${x.daysListed||0} days</b></div>
+    <div class="summary-cell"><span>Gross Spread</span><b>$${gross.toFixed(2)}</b></div>
+  </div><div style="margin-top:10px"><b>Marketplaces:</b> ${(x.marketplaces||[]).join(", ")||"—"}</div>
+  <div style="margin-top:6px"><b>Recommended action:</b> ${x.recommendedAction||"—"}</div>
+  <div style="margin-top:6px"><b>Notes:</b> ${x.notes||"—"}</div>`;
+  modalViewActions.style.display="flex"; modalEditPanel.style.display="none"; itemModal.style.display="block";
 }
-
-function showPage(p,b){
-  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
-  document.getElementById(p).classList.add('active');
-  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.getElementById('pageTitle').textContent=p;
+function closeItemModal(){currentItemId=null;itemModal.style.display="none";}
+function startEditItem(){
+  const x=state.inventory.find(i=>i.id===currentItemId); if(!x)return;
+  editTitle.value=x.title||"";editBrand.value=x.brand||"";editCategory.value=x.category||"";
+  editPricing.value=x.ask||0;editCost.value=x.itemCost||0;editQty.value=x.quantity||"1";
+  editStatus.value=x.status||"Active";editSeason.value=x.season||"Evergreen";
+  editMarkets.value=(x.marketplaces||[]).join(", ");editMarketplaceIds.value=marketplaceIdsToText(x.marketplaceIds);
+  editAction.value=x.recommendedAction||"";editNotes.value=x.notes||"";editPhoto.value="";
+  modalViewActions.style.display="none";modalEditPanel.style.display="block";
 }
-function actionScore(x){
-  let v=Math.max(0,Math.min(100,(x.ask/3)+(x.daysListed/20)));
-  if(x.season==="Halloween") v+=18;
-  if(x.status.includes("Research")) v-=15;
-  return Math.round(v);
+function cancelItemEdit(){modalViewActions.style.display="flex";modalEditPanel.style.display="none";}
+async function saveItemEdits(){
+  const x=state.inventory.find(i=>i.id===currentItemId); if(!x)return;
+  x.title=editTitle.value.trim()||x.title;x.brand=editBrand.value.trim()||"Unknown";x.category=editCategory.value.trim()||"Other";
+  x.ask=Number(editPricing.value||0);x.itemCost=Number(editCost.value||0);x.quantity=editQty.value||"1";x.status=editStatus.value;
+  x.season=editSeason.value.trim()||"Evergreen";x.marketplaces=editMarkets.value.split(",").map(s=>s.trim()).filter(Boolean);
+  x.marketplaceIds=textToMarketplaceIds(editMarketplaceIds.value);x.recommendedAction=editAction.value.trim()||"Review";x.notes=editNotes.value.trim();
+  const f=editPhoto.files[0]; if(f)x.imageData=await fileToDataURL(f);
+  persist();renderAll();openItem(currentItemId);
 }
-function renderAll(){
-  document.getElementById('mInventory').textContent=state.inventory.length;
-  document.getElementById('mHigh').textContent=state.inventory.filter(x=>x.ask>=state.settings.highValueThreshold).length;
-  document.getElementById('mChannels').textContent=state.channels.filter(x=>x.enabled).length;
-  document.getElementById('capDisplay').textContent=state.settings.adSpendDailyCap;
-  renderInventory(); renderQueues(); renderChannels(); renderRules(); renderMoney(); renderBlindspots();
-}
-function renderInventory(){
-  const b=document.getElementById('inventoryBody'); b.innerHTML="";
-  const cards=document.getElementById('inventoryCards'); cards.innerHTML="";
-  state.inventory.forEach(x=>{
-    b.innerHTML+=`<tr><td><b>${x.title}</b><div class="muted small">${x.id} • ${x.brand}</div></td><td>${x.status}</td><td>$${x.ask}</td><td>${x.daysListed}d</td><td>${x.marketplaces.join(", ")}</td><td>${x.recommendedAction}<div class="muted small">${x.recommendedRange}</div></td></tr>`;
-    cards.innerHTML+=`<div class="inventory-card">${x.imageData?`<img src="${x.imageData}" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:10px">`:''}<div class="title">${x.title}</div><div class="meta"><span class="pill">${x.status}</span><span class="pill">${x.brand}</span><span class="pill">${x.quantity} qty</span></div><div class="kv" style="grid-template-columns:1fr 1fr 1fr"><div><span>PRICING</span><b>$${x.ask}</b></div><div><span>ITEM COST</span><b>$${Number(x.itemCost||0).toFixed(2)}</b></div><div><span>AGE</span><b>${x.daysListed} days</b></div></div><div class="small muted">${x.marketplaces.join(" • ")}</div><div class="small" style="margin-top:6px"><b>Gross spread:</b> $${Math.max(0,Number(x.ask||0)-Number(x.itemCost||0)).toFixed(2)}</div><div class="actionbox"><div class="small muted">RECOMMENDED ACTION</div><b>${x.recommendedAction}</b><div class="small muted" style="margin-top:3px">${x.recommendedRange}</div></div><button class="btn secondary" onclick="openItem('${x.id}')">Open item</button></div>`;
-  });
-}
-function renderQueues(){
-  const list=[...state.inventory].sort((a,b)=>actionScore(b)-actionScore(a));
-  document.getElementById('mActions').textContent=list.length;
-  const html=list.map((x,i)=>`<div class="action"><div><b>${i+1}. ${x.title}</b><div class="muted small">${x.recommendedAction} • score ${actionScore(x)}</div></div><div class="right"><span class="pill ${x.confidence==='High'?'good':'warn'}">${x.confidence}</span><div class="small">${x.recommendedRange}</div></div></div>`).join("");
-  document.getElementById('todayQueue').innerHTML=html;
-  document.getElementById('sellQueue').innerHTML=html;
-}
-function buildTimePlan(){
-  const min=+document.getElementById('timeBudget').value;
-  const per=20; const n=Math.max(1,Math.floor(min/per));
-  const list=[...state.inventory].sort((a,b)=>actionScore(b)-actionScore(a)).slice(0,n);
-  document.getElementById('timePlan').innerHTML=`Focus on ${n} item(s):<br>`+list.map(x=>"• "+x.title+" — "+x.recommendedAction).join("<br>");
-}
-document.getElementById('sourcePhoto').addEventListener('change',e=>{
-  const f=e.target.files[0]; if(!f)return; const img=document.getElementById('sourcePreview'); img.src=URL.createObjectURL(f); img.style.display='block';
-  const el=document.getElementById('sourceSecondary'); if(el){el.classList.add('open');document.getElementById('sourceMoreBtn').textContent='Hide economics';}
-});
-function analyzeSource(){
-  const cost=+sourceCost.value,sale=+sourceSale.value,fees=+sourceFees.value,mins=+sourceMinutes.value;
-  const profit=sale-cost-fees, roi=cost?profit/cost:0, pph=mins?profit/(mins/60):0;
-  let decision=profit>=state.settings.minimumExpectedProfit?"BUY":profit>=state.settings.minimumExpectedProfit*.6?"TEST":"PASS";
-  sourceResult.innerHTML=`<div class="metric">${decision}</div><p>Expected contribution profit: <b>$${profit.toFixed(2)}</b></p><p>ROI: <b>${roi.toFixed(1)}×</b> • Profit/owner-hour: <b>$${pph.toFixed(0)}</b></p><p class="muted">Prototype note: live visual identification and current comps will plug into the AI/web connector; this browser build currently evaluates the economics you provide.</p>`;
-}
-function priceCalc(){
-  const net=+targetNet.value,fee=+feePct.value/100,ship=+shipCost.value,offer=+offerPct.value/100;
-  const expectedSale=(net+ship)/(1-fee); const ask=expectedSale/(1-offer);
-  priceResult.innerHTML=`Recommended listing price: <b>$${ask.toFixed(2)}</b><br><span class="muted small">Designed so an expected ${offerPct.value}% offer can still target about $${net.toFixed(0)} net before COGS.</span>`;
-}
-function generateListing(){
-  const item=listingItem.value.trim(),cond=listingCondition.value.trim(),details=listingDetails.value.trim(),ch=listingChannel.value;
-  const title=(item+" "+details).replace(/\s+/g," ").slice(0,ch==="eBay"?80:120);
-  const desc=`${item}\n\nCondition: ${cond||"Please confirm condition."}\n\nDetails:\n${details||"Add measurements, materials, flaws, and notable features."}\n\nShips carefully packed.`;
-  listingOutput.textContent=`${ch.toUpperCase()} DRAFT\n\nTITLE\n${title}\n\nDESCRIPTION\n${desc}\n\nMISSING INFO CHECK\n• Measurements\n• Material/fabric\n• Flaws/condition confirmation\n• Brand/style identifiers\n• Shipping weight if needed`;
-}
-function generateContent(){
-  const obj=contentObjective.value,mode=contentMode.value,p=contentProduct.value||"this product";
-  if((mode.includes("likeness")||mode.includes("voice"))&&!state.settings.likenessVoiceOptIn){
-    contentOutput.innerHTML=`<span style="color:#fca5a5">Likeness/voice is not enabled. Turn it on in Lab before using that mode.</span>`;return;
-  }
-  contentOutput.innerHTML=`<b>Objective:</b> ${obj}<br><b>Mode:</b> ${mode}<br><br><b>Hook:</b> “The detail that makes ${p} worth a second look…”<br><b>Structure:</b> 1) fast visual hook 2) 2–3 product proof points 3) urgency/uniqueness 4) CTA<br><b>CTA:</b> Shop the item / join the list for new finds.<br><b>Variants:</b> TikTok/Reel, Pinterest Pin, Story, email hero.`;
-}
-function buildAdPlan(){
-  const ch=adChannel.value,b=+adBudget.value,m=+adMargin.value,p=adProduct.value||"selected collection";
-  const capped=Math.min(b,state.settings.adSpendDailyCap*3);
-  adPlan.innerHTML=`<b>${ch} TEST PLAN</b><br>Product: ${p}<br>Proposed controlled test: $${capped.toFixed(0)} total<br>Creative: 3 variants × 2 hooks<br>Primary KPI: incremental contribution profit<br>Guardrail: pause if spend reaches test cap without minimum conversion signal.<br><span class="muted">Approval required before any real spend.</span>`;
-}
-function addOutcome(){
-  const r=+mRev.value,c=+mCost.value,mins=+mMin.value,n=mNote.value||"Outcome";
-  money.revenue+=r; money.profit+=(r-c); money.minutes+=mins; money.outcomes.unshift(`${n}: $${r} revenue, $${(r-c).toFixed(2)} contribution profit`);
-  try{localStorage.setItem('commerceMoney',JSON.stringify(money));}catch(e){} renderMoney();
-}
-function renderMoney(){
-  rev.textContent=money.revenue.toFixed(0); profit.textContent=money.profit.toFixed(0); hours.textContent=(money.minutes/60).toFixed(1); pph.textContent=money.minutes?(money.profit/(money.minutes/60)).toFixed(0):"0";
-  outcomeLog.innerHTML=money.outcomes.slice(0,8).join("<br>");
-}
-function ensureFeeSettings(){
-  if(!state.settings.channelFees) state.settings.channelFees={eBay:15,Poshmark:20,Mercari:10,Etsy:10,Depop:10,Vinted:5,Whatnot:12,Shopify:3};
-}
-function renderRules(){ensureFeeSettings();
-  ruleMinProfit.value=state.settings.minimumExpectedProfit; ruleHighValue.value=state.settings.highValueThreshold; ruleMarkdown.value=state.settings.maxRoutineMarkdownPct; ruleAdCap.value=state.settings.adSpendDailyCap; ruleLikeness.checked=state.settings.likenessVoiceOptIn;
-  feeEbay.value=state.settings.channelFees.eBay; feePosh.value=state.settings.channelFees.Poshmark; feeMercari.value=state.settings.channelFees.Mercari; feeEtsy.value=state.settings.channelFees.Etsy;
-}
-function saveRules(){
-  state.settings.minimumExpectedProfit=+ruleMinProfit.value; state.settings.highValueThreshold=+ruleHighValue.value; state.settings.maxRoutineMarkdownPct=+ruleMarkdown.value; state.settings.adSpendDailyCap=+ruleAdCap.value; state.settings.likenessVoiceOptIn=ruleLikeness.checked;
-  ensureFeeSettings(); state.settings.channelFees.eBay=+feeEbay.value; state.settings.channelFees.Poshmark=+feePosh.value; state.settings.channelFees.Mercari=+feeMercari.value; state.settings.channelFees.Etsy=+feeEtsy.value;
-  persist(); renderAll(); ruleMsg.textContent="Rules saved. The prototype updates immediately.";
-}
-function addBlindspot(){const t=blindspot.value.trim();if(!t)return;blindspots.unshift({text:t,date:new Date().toLocaleDateString()});try{localStorage.setItem('commerceBlindspots',JSON.stringify(blindspots));}catch(e){} blindspot.value="";renderBlindspots();}
-function renderBlindspots(){blindspotLog.innerHTML=blindspots.map(x=>`• ${x.date}: ${x.text}`).join("<br>")||'<span class="muted">No blind spots logged yet.</span>';}
-function renderChannels(){
-  channelBody.innerHTML=state.channels.map(x=>`<tr><td>${x.name}</td><td>${x.type}</td><td>${x.enabled?"Yes":"No"}</td><td>${x.connection}</td></tr>`).join("");
-}
-
-function showAddItem(){document.getElementById('addItemPanel').style.display='block';}
-function hideAddItem(){document.getElementById('addItemPanel').style.display='none';}
-function nextProductId(){
-  const nums=state.inventory.map(x=>parseInt(String(x.id||'').replace(/\D/g,''))||0);
-  return 'P-'+String(Math.max(0,...nums)+1).padStart(4,'0');
-}
-async function addItem(){
-  const title=document.getElementById('newTitle').value.trim();
-  if(!title){alert('Title is required.');return;}
-  let imageData='';
-  const pf=document.getElementById('newPhoto').files[0];
-  if(pf){imageData=await fileToDataURL(pf);}
-  const item={
-    id:nextProductId(),
-    title,
-    brand:document.getElementById('newBrand').value.trim()||'Unknown',
-    category:document.getElementById('newCategory').value.trim()||'Other',
-    status:document.getElementById('newStatus').value,
-    ask:Number(document.getElementById('newAsk').value||0),
-    itemCost:Number(document.getElementById('newCost').value||0),
-    daysListed:0,
-    season:'Evergreen',
-    marketplaces:document.getElementById('newMarkets').value.split(',').map(s=>s.trim()).filter(Boolean),
-    recommendedAction:document.getElementById('newAction').value.trim()||'Review',
-    recommendedRange:'',
-    confidence:'Low',
-    quantity:document.getElementById('newQty').value||'1',
-    imageData
-  };
-  state.inventory.unshift(item); persist(); renderAll(); hideAddItem();
-  ['newTitle','newBrand','newCategory','newAsk','newCost','newMarkets','newAction'].forEach(id=>document.getElementById(id).value='');
-}
-
-let pendingImport=[];
-let reconciliationPlan=[];
-
-function fileToDataURL(file){
-  return new Promise((resolve,reject)=>{
-    const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file);
-  });
-}
-function normText(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
-function tokenSet(s){return new Set(normText(s).split(/\s+/).filter(Boolean));}
-function similarity(a,b){
-  const A=tokenSet(a), B=tokenSet(b);
-  if(!A.size||!B.size)return 0;
-  let inter=0; A.forEach(x=>{if(B.has(x))inter++});
-  return inter/Math.max(A.size,B.size);
-}
-function findBestMatch(item){
-  let best=null,score=0;
-  state.inventory.forEach(x=>{
-    let s=similarity(item.title,x.title);
-    if(item.brand && x.brand && normText(item.brand)===normText(x.brand)) s+=0.15;
-    if(item.category && x.category && normText(item.category)===normText(x.category)) s+=0.05;
-    if(item.id && x.id && String(item.id)===String(x.id)) s=1;
-    if(s>score){score=s;best=x;}
-  });
-  return {best,score:Math.min(score,1)};
-}
-function buildReconciliation(items){
-  pendingImport=items;
-  reconciliationPlan=items.map((item,idx)=>{
-    const {best,score}=findBestMatch(item);
-    let status='NEW',action='ADD';
-    if(best && score>=0.78){status='LIKELY MATCH';action='MERGE';}
-    else if(best && score>=0.5){status='REVIEW MATCH';action='HOLD';}
-    return {idx,item,best,score,status,action};
-  });
-  renderReconciliation();
-}
-
-function displayVal(v){
-  if(Array.isArray(v)) return v.join(", ");
-  if(v===undefined || v===null || v==="") return "—";
-  return String(v);
-}
-function comparableVal(v){
-  if(Array.isArray(v)) return v.map(x=>normText(x)).sort().join("|");
-  if(typeof v==="number") return Number(v);
-  return normText(v);
-}
-const RECON_FIELDS=[
-  ["title","Title"],["brand","Brand"],["category","Category"],["ask","Pricing"],
-  ["itemCost","Item Cost"],["status","Status"],["quantity","Quantity"],
-  ["marketplaces","Marketplaces"],["season","Season"],["recommendedAction","Recommended Action"],
-  ["imageData","Photo"]
-];
-function getFieldDiffs(planItem){
-  if(!planItem.best) return [];
-  return RECON_FIELDS.filter(([key])=>{
-    const a=planItem.best[key], b=planItem.item[key];
-    if(key==="imageData") return Boolean(a)!==Boolean(b) || (a && b && a!==b);
-    return comparableVal(a)!==comparableVal(b);
-  });
-}
-function ensureFieldChoices(planItem){
-  if(!planItem.fieldChoices) planItem.fieldChoices={};
-  getFieldDiffs(planItem).forEach(([key])=>{
-    if(!planItem.fieldChoices[key]) planItem.fieldChoices[key]="existing";
-  });
-}
-function setFieldChoice(planIndex,key,choice){
-  const p=reconciliationPlan[planIndex];
-  if(!p.fieldChoices) p.fieldChoices={};
-  p.fieldChoices[key]=choice;
-  renderReconciliation();
-}
-function fieldDiffHtml(planIndex,planItem,key,label){
-  const existing=planItem.best?planItem.best[key]:undefined;
-  const imported=planItem.item[key];
-  const choice=(planItem.fieldChoices&&planItem.fieldChoices[key])||"existing";
-  const existingDisplay=key==="imageData"?(existing?"Photo attached":"No photo"):displayVal(existing);
-  const importedDisplay=key==="imageData"?(imported?"Photo attached":"No photo"):displayVal(imported);
-  return `<div class="recon-diff">
-    <div class="small" style="font-weight:700;margin-bottom:6px">${label}</div>
-    <div class="recon-grid">
-      <div class="recon-value"><span class="lbl">Existing</span>${existingDisplay}</div>
-      <div class="recon-value"><span class="lbl">Imported</span>${importedDisplay}</div>
-    </div>
-    <div class="recon-choice">
-      <button class="${choice==='existing'?'selected':''}" onclick="setFieldChoice(${planIndex},'${key}','existing')">Keep existing</button>
-      <button class="${choice==='imported'?'selected':''}" onclick="setFieldChoice(${planIndex},'${key}','imported')">Use imported</button>
-    </div>
-  </div>`;
-}
-function renderReconciliation(){
-  const p=document.getElementById('reconcilePanel'); p.style.display='block';
-  const r=document.getElementById('reconcileResults');
-  const counts={match:0,review:0,new:0};
-  reconciliationPlan.forEach(x=>{
-    if(x.status==='LIKELY MATCH')counts.match++;
-    else if(x.status==='REVIEW MATCH')counts.review++;
-    else counts.new++;
-    ensureFieldChoices(x);
-  });
-  document.getElementById('reconcileSummary').innerHTML=`Likely matches: <b>${counts.match}</b> • Needs review: <b>${counts.review}</b> • New: <b>${counts.new}</b>`;
-  r.innerHTML=reconciliationPlan.map((x,i)=>{
-    const existing=x.best?`<div class="small muted">Existing item: ${x.best.title}</div>`:'';
-    const diffs=getFieldDiffs(x);
-    const diffHtml=diffs.length?diffs.map(([key,label])=>fieldDiffHtml(i,x,key,label)).join(''):`<div class="small muted" style="margin-top:8px">No differences detected.</div>`;
-    return `<div class="card" style="margin:8px 0;background:#fff">
-      <div class="row" style="justify-content:space-between"><b>${x.item.title}</b><span class="pill">${x.status}</span></div>
-      ${existing}${diffHtml}
-      <label>Record action</label>
-      <select onchange="setReconAction(${i},this.value)">
-        <option value="MERGE" ${x.action==='MERGE'?'selected':''}>Merge into existing item</option>
-        <option value="ADD" ${x.action==='ADD'?'selected':''}>Import as new item</option>
-        <option value="HOLD" ${x.action==='HOLD'?'selected':''}>Hold for manual review</option>
-        <option value="IGNORE" ${x.action==='IGNORE'?'selected':''}>Ignore</option>
-      </select>
-    </div>`;
-  }).join('');
-}
-function setReconAction(i,v){reconciliationPlan[i].action=v;}
-
-function mergeItemWithChoices(planItem){
-  const target=planItem.best, src=planItem.item;
-  if(!target) return;
-  const diffs=getFieldDiffs(planItem);
-  const diffKeys=new Set(diffs.map(x=>x[0]));
-  RECON_FIELDS.forEach(([key])=>{
-    if(diffKeys.has(key)){
-      const choice=(planItem.fieldChoices&&planItem.fieldChoices[key])||"existing";
-      if(choice==="imported"){
-        if(key==="marketplaces") target.marketplaces=[...(src.marketplaces||[])];
-        else target[key]=src[key];
-      }
-    } else if(key==="marketplaces" && src.marketplaces && src.marketplaces.length){
-      target.marketplaces=[...new Set([...(target.marketplaces||[]),...src.marketplaces])];
-    }
-  });
-}
-function applyReconciliation(){
-  let merged=0,added=0,held=0;
-  reconciliationPlan.forEach(x=>{
-    if(x.action==='MERGE' && x.best){mergeItemWithChoices(x);merged++;}
-    else if(x.action==='ADD'){state.inventory.unshift(x.item);added++;}
-    else if(x.action==='HOLD'){held++;}
-  });
-  persist();renderAll();
-  document.getElementById('reconcilePanel').style.display='none';
-  document.getElementById('importMsg').textContent=`Reconciliation complete: ${merged} merged, ${added} added, ${held} held for review.`;
-  pendingImport=[];reconciliationPlan=[];
-}
-function cancelReconciliation(){
-  pendingImport=[];reconciliationPlan=[];document.getElementById('reconcilePanel').style.display='none';
-  document.getElementById('importMsg').textContent='Import cancelled. No inventory changes were made.';
-}
-
-function parseCSV(text){
-  const lines=text.split(/\r?\n/).filter(x=>x.trim());
-  if(lines.length<2)return [];
-  const parseLine=line=>{
-    let a=[],cur='',q=false;
-    for(let i=0;i<line.length;i++){
-      const c=line[i];
-      if(c==='"' && line[i+1]==='"'){cur+='"';i++;}
-      else if(c==='"'){q=!q;}
-      else if(c===','&&!q){a.push(cur);cur='';}
-      else cur+=c;
-    }
-    a.push(cur); return a;
-  };
-  const h=parseLine(lines[0]).map(x=>x.trim().toLowerCase());
-  return lines.slice(1).map(line=>{
-    const vals=parseLine(line),o={};h.forEach((k,i)=>o[k]=vals[i]??'');return o;
-  });
-}
-function normalizeImportedItem(o,idx){
-  const get=(...keys)=>{for(const k of keys){if(o[k]!==undefined&&o[k]!==null&&String(o[k]).trim()!=='')return o[k];}return '';};
-  const markets=get('marketplaces','channels','platform','marketplace');
-  return {
-    id:get('id','product id','sku')||`IMP-${Date.now()}-${idx}`,
-    title:get('title','item','name','listing title')||'Untitled item',
-    brand:get('brand')||'Unknown',
-    category:get('category','department')||'Other',
-    status:get('status')||'Active',
-    ask:Number(get('ask','price','list price','listing price','order price','pricing')||0),
-    itemCost:Number(get('itemcost','item cost','cost','cogs','purchase cost')||0),
-    daysListed:Number(get('dayslisted','days listed','age','listing age')||0),
-    season:get('season','seasonality')||'Evergreen',
-    marketplaces:Array.isArray(markets)?markets:String(markets||'').split(/[;,|]/).map(s=>s.trim()).filter(Boolean),
-    recommendedAction:get('recommendedaction','recommended action','action')||'Review',
-    recommendedRange:get('recommendedrange','recommended range')||'',
-    confidence:get('confidence')||'Low',
-    quantity:get('quantity','qty')||'1',
-    imageData:get('imagedata','image data','image','photo','photo url','image url')||''
-  };
-}
-async function importInventoryFile(ev){
-  const file=ev.target.files[0]; if(!file)return;
-  try{
-    const text=await file.text(); let incoming=[];
-    if(file.name.toLowerCase().endsWith('.json')){
-      const obj=JSON.parse(text); incoming=Array.isArray(obj)?obj:(obj.inventory||[]);
-    }else incoming=parseCSV(text);
-    const normalized=incoming.map(normalizeImportedItem).filter(x=>x.title);
-    if(!normalized.length)throw new Error('No recognizable inventory rows found.');
-    buildReconciliation(normalized);
-    document.getElementById('importMsg').textContent=`Loaded ${normalized.length} item(s) for reconciliation.`;
-  }catch(e){
-    document.getElementById('importMsg').textContent='Import failed: '+e.message;
-  }finally{ev.target.value='';}
-}
-function exportFullBackup(){
-  const payload={version:'0.3',exportedAt:new Date().toISOString(),state,money,blindspots};
-  const blob=new Blob(['\ufeff'+JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='commerce_os_backup.json';a.click();
-}
-async function restoreFullBackup(ev){
-  const f=ev.target.files[0];if(!f)return;
-  try{
-    const obj=JSON.parse(await f.text());
-    if(!obj.state)throw new Error('Not a Commerce OS backup.');
-    state=obj.state; money=obj.money||{revenue:0,profit:0,minutes:0,outcomes:[]}; blindspots=obj.blindspots||[];
-    persist();
-    try{localStorage.setItem('commerceMoney',JSON.stringify(money));localStorage.setItem('commerceBlindspots',JSON.stringify(blindspots));}catch(e){}
-    renderAll(); alert('Backup restored.');
-  }catch(e){alert('Restore failed: '+e.message);}
-  ev.target.value='';
+function markCurrentItemSold(){
+  const x=state.inventory.find(i=>i.id===currentItemId); if(!x)return;
+  if(confirm(`Mark "${x.title}" as sold?`)){x.status="Sold";persist();renderAll();openItem(currentItemId);}
 }
 
 function exportInventory(){
@@ -824,4 +496,41 @@ function exportInventory(){
 document.addEventListener("DOMContentLoaded", init);
 </script>
 <div class="mobile-bottom-nav" id="mobileNav"></div>
+
+<div id="itemModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:1200;padding:10px;overflow:auto">
+  <div class="card" style="max-width:720px;margin:20px auto;background:#fff">
+    <div class="row" style="justify-content:space-between">
+      <div><div class="small muted">ITEM DETAILS</div><h3 id="modalTitle"></h3></div>
+      <button class="btn secondary" onclick="closeItemModal()">Close</button>
+    </div>
+    <div id="modalPhotoWrap"></div>
+    <div id="modalSummary"></div>
+    <div id="modalViewActions" class="row" style="margin-top:12px">
+      <button class="btn" onclick="startEditItem()">Edit item</button>
+      <button class="btn warn" onclick="markCurrentItemSold()">Mark as sold</button>
+    </div>
+    <div id="modalEditPanel" style="display:none;margin-top:14px">
+      <div class="grid g2">
+        <div><label>Title</label><input id="editTitle"/></div>
+        <div><label>Brand</label><input id="editBrand"/></div>
+        <div><label>Category</label><input id="editCategory"/></div>
+        <div><label>Pricing</label><input id="editPricing" type="number" step="0.01"/></div>
+        <div><label>Item Cost</label><input id="editCost" type="number" step="0.01"/></div>
+        <div><label>Quantity</label><input id="editQty"/></div>
+        <div><label>Status</label><select id="editStatus"><option>Active</option><option>Research / Hold</option><option>Unlisted</option><option>Sold</option></select></div>
+        <div><label>Season</label><input id="editSeason"/></div>
+      </div>
+      <label>Marketplaces</label><input id="editMarkets" placeholder="eBay, Poshmark"/>
+      <label>Marketplace IDs</label><textarea id="editMarketplaceIds" rows="3" placeholder="eBay: 12345&#10;Poshmark: abc123"></textarea>
+      <label>Recommended action</label><input id="editAction"/>
+      <label>Notes</label><textarea id="editNotes" rows="4"></textarea>
+      <label>Replace / add photo</label><input id="editPhoto" type="file" accept="image/*" capture="environment"/>
+      <div class="row" style="margin-top:10px">
+        <button class="btn good" onclick="saveItemEdits()">Save changes</button>
+        <button class="btn secondary" onclick="cancelItemEdit()">Cancel edit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body></html>
