@@ -114,12 +114,22 @@ body{overflow-x:hidden}
 }
 </style>
 
+
+<style>
+@media(max-width:700px){
+  label.btn{
+    color:white !important;
+    text-decoration:none !important;
+    min-height:48px;
+  }
+}
+</style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <div class="brand">Commerce OS</div>
-    <div class="sub">Prototype v0.3 • persistent data • configurable by design</div>
+    <div class="sub">Prototype v0.3.1 • import fix • configurable by design</div>
     <div class="nav" id="nav"></div>
     <div class="card" style="margin-top:18px">
       <div class="small muted">Prototype rule</div>
@@ -177,12 +187,12 @@ body{overflow-x:hidden}
       <div class="card">
         <div class="row" style="justify-content:space-between"><h3>Canonical inventory</h3>
 <div class="row">
-<button class="btn secondary" onclick="document.getElementById('inventoryImport').click()">Import</button>
+<label for="inventoryImport" class="btn secondary" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin:0">Import</label>
 <button class="btn secondary" onclick="exportInventory()">Export</button>
 <button class="btn good" onclick="showAddItem()">Add item</button>
 </div></div>
-<input id="inventoryImport" type="file" accept=".json,.csv,application/json,text/csv" style="display:none" onchange="importInventoryFile(event)"/>
-<div id="importMsg" class="small muted" style="margin:8px 0"></div>
+<input id="inventoryImport" type="file" accept=".json,.csv,application/json,text/csv" onchange="importInventoryFile(event)" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"/>
+<div id="importMsg" class="small muted" style="margin:8px 0">Import accepts JSON or CSV.</div>
 <div id="addItemPanel" class="card" style="display:none;margin:10px 0;background:#0b1220">
   <h3>Add inventory item</h3>
   <div class="grid g2">
@@ -560,14 +570,14 @@ async function importInventoryFile(ev){
     const mode=confirm(`Found ${normalized.length} item(s). Tap OK to ADD them to current inventory, or Cancel to REPLACE the current inventory.`);
     state.inventory=mode?[...normalized,...state.inventory]:normalized;
     persist(); renderAll();
-    document.getElementById('importMsg').textContent=`Imported ${normalized.length} item(s).`;
+    document.getElementById('importMsg').textContent=`Imported ${normalized.length} item(s) successfully.`;
   }catch(e){
     document.getElementById('importMsg').textContent='Import failed: '+e.message;
   }finally{ev.target.value='';}
 }
 function exportFullBackup(){
   const payload={version:'0.3',exportedAt:new Date().toISOString(),state,money,blindspots};
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const blob=new Blob(['\ufeff'+JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='commerce_os_backup.json';a.click();
 }
 async function restoreFullBackup(ev){
@@ -584,7 +594,7 @@ async function restoreFullBackup(ev){
 }
 
 function exportInventory(){
-  const blob=new Blob([JSON.stringify(state.inventory,null,2)],{type:"application/json"}); const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="commerce_os_inventory.json";a.click();
+  const blob=new Blob(["\ufeff"+JSON.stringify(state.inventory,null,2)],{type:"application/json;charset=utf-8"}); const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="commerce_os_inventory.json";a.click();
 }
 document.addEventListener("DOMContentLoaded", init);
 </script>
