@@ -1,578 +1,239 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Commerce OS Prototype</title>
-<meta name="theme-color" content="#f6f7fb">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7f8fb">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Commerce OS">
+<title>Commerce OS</title>
 <style>
-:root{
-  --bg:#0f172a;--panel:#111827;--panel2:#1f2937;--muted:#94a3b8;--text:#f8fafc;
-  --accent:#38bdf8;--good:#22c55e;--warn:#f59e0b;--bad:#ef4444;--line:#334155;
-}
-*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:#0b1220;color:var(--text)}
-.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-.sidebar{background:#0a1020;border-right:1px solid var(--line);padding:20px;position:sticky;top:0;height:100vh}
-.brand{font-weight:800;font-size:20px;margin-bottom:18px}.sub{color:var(--muted);font-size:12px;margin-bottom:20px}
-.nav button{width:100%;text-align:left;background:transparent;border:0;color:#cbd5e1;padding:10px 12px;border-radius:10px;margin:2px 0;cursor:pointer;font-size:14px}
-.nav button.active,.nav button:hover{background:#172033;color:#fff}
-.main{padding:24px;max-width:1500px}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
-h1{font-size:26px;margin:0}.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#172033;color:#bae6fd;font-size:12px}
-.grid{display:grid;gap:14px}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
-.card{background:linear-gradient(180deg,#121b2d,#0f172a);border:1px solid var(--line);border-radius:14px;padding:16px}
-.card h3{margin:0 0 10px;font-size:16px}.metric{font-size:28px;font-weight:800}.muted{color:var(--muted)}
-.btn{background:#0ea5e9;border:0;color:white;padding:9px 12px;border-radius:9px;cursor:pointer;font-weight:700}.btn.secondary{background:#24324a}.btn.good{background:#16a34a}.btn.warn{background:#d97706}
-input,select,textarea{width:100%;background:#0b1220;border:1px solid #3b4a62;color:#fff;padding:9px 10px;border-radius:8px}
-label{font-size:12px;color:#cbd5e1;display:block;margin:9px 0 5px}
-table{width:100%;border-collapse:collapse;font-size:13px} th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top} th{color:#bae6fd}
-.pill{padding:3px 7px;border-radius:999px;font-size:11px;background:#22314a;display:inline-block}.pill.good{background:#143b27;color:#bbf7d0}.pill.warn{background:#4a3312;color:#fde68a}
-.page{display:none}.page.active{display:block}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.spacer{height:8px}
-.action{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)} .action:last-child{border:0}
-.small{font-size:12px}.right{text-align:right}.preview{max-width:240px;max-height:180px;border-radius:12px;border:1px solid var(--line);display:none}
-code{background:#111827;padding:2px 5px;border-radius:5px}
-@media(max-width:1000px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:relative}.g4,.g3,.g2{grid-template-columns:1fr}.nav{display:flex;overflow:auto}.nav button{min-width:max-content}}
-</style>
-
-<style>
-body{overflow-x:hidden}
-.mobile-bottom-nav{display:none}.inventory-cards{display:none}.source-hero{display:none}
-@media(max-width:700px){
-  body{padding-bottom:78px}
-  .app{display:block}.sidebar{position:relative;height:auto;width:100%;padding:18px 18px 8px;border-right:0;border-bottom:1px solid var(--line);overflow:hidden}
-  .brand{font-size:22px;margin-bottom:6px}.sub{white-space:normal;margin-bottom:8px}.sidebar .nav,.sidebar .card{display:none}
-  .main{padding:16px 14px 24px;width:100%;overflow:hidden}.topbar{display:block;margin-bottom:12px}.topbar .row{margin-top:8px;gap:6px}
-  .topbar .badge{font-size:11px;max-width:48%;white-space:normal}h1{font-size:24px}
-  .grid.g4,.grid.g3,.grid.g2{grid-template-columns:1fr!important}.card{padding:14px;border-radius:16px;min-width:0;overflow:hidden}
-  #Today .grid.g4{grid-template-columns:1fr 1fr!important}#Today .metric{font-size:30px}
-  .action{display:block}.action .right{text-align:left;margin-top:8px}table{display:none}.inventory-cards{display:block}
-  .inventory-card{border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 0 12px;background:linear-gradient(180deg,#121b2d,#0f172a)}
-  .inventory-card .title{font-size:16px;font-weight:800;line-height:1.25;margin-bottom:7px}.inventory-card .meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-  .inventory-card .kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.inventory-card .kv div{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:9px}
-  .inventory-card .kv span{display:block;color:var(--muted);font-size:11px;margin-bottom:2px}.inventory-card .actionbox{background:#0b1220;border-radius:10px;padding:10px;margin-top:8px}
-  .inventory-card button{width:100%;margin-top:10px}.source-hero{display:block;text-align:center;padding:18px 6px}.source-hero .cam{font-size:42px}
-  #Source input,#Source select,#Source textarea{font-size:16px}#sourcePreview{max-width:100%;width:100%;height:auto}
-  .source-secondary{display:none}.source-secondary.open{display:block}
-  .mobile-bottom-nav{position:fixed;display:flex;left:0;right:0;bottom:0;z-index:999;background:rgba(10,16,32,.96);border-top:1px solid var(--line);backdrop-filter:blur(10px);padding:5px 3px max(5px,env(safe-area-inset-bottom));overflow-x:auto}
-  .mobile-bottom-nav button{flex:0 0 58px;background:transparent;border:0;color:#94a3b8;font-size:10px;padding:8px 2px}.mobile-bottom-nav button.active{color:#fff;background:#172033;border-radius:9px}
-  .mobile-bottom-nav .ico{display:block;font-size:17px;margin-bottom:2px}pre{overflow-wrap:anywhere;word-break:break-word}
-}
-</style>
-
-
-<style>
-@media(max-width:700px){
-  .mobile-bottom-nav{
-    display:flex !important;
-    visibility:visible !important;
-    opacity:1 !important;
-    min-height:58px;
-    bottom:0;
-  }
-  body{padding-bottom:90px !important}
-}
-</style>
-
-
-<style>
-@media(max-width:700px){
-  .mobile-bottom-nav{
-    display:grid !important;
-    grid-template-columns:repeat(4,1fr) !important;
-    gap:2px !important;
-    left:0;right:0;bottom:0;
-    padding:6px 6px max(6px,env(safe-area-inset-bottom)) !important;
-    min-height:112px !important;
-    overflow:visible !important;
-  }
-  .mobile-bottom-nav button{
-    min-width:0 !important;
-    width:100% !important;
-    padding:7px 2px !important;
-    font-size:10px !important;
-    line-height:1.1;
-    border-radius:8px;
-  }
-  .mobile-bottom-nav .ico{
-    font-size:16px !important;
-    margin-bottom:3px !important;
-  }
-  body{padding-bottom:132px !important}
-}
-</style>
-
-
-<style>
-@media(max-width:700px){
-  #Inventory .row{align-items:stretch}
-  #Inventory .row .btn{flex:1}
-  #addItemPanel .grid.g2{grid-template-columns:1fr 1fr!important}
-  #Lab .row .btn{width:100%}
-}
-</style>
-
-
-<style>
-@media(max-width:700px){
-  label.btn{
-    color:white !important;
-    text-decoration:none !important;
-    min-height:48px;
-  }
-}
-</style>
-
-<style>
-:root{
-  --bg:#f6f7fb;--panel:#ffffff;--panel2:#f8fafc;--muted:#667085;--text:#111827;
-  --accent:#2563eb;--good:#16a34a;--warn:#d97706;--bad:#dc2626;--line:#d8dee9;
-}
-body{background:#f6f7fb;color:var(--text)}
-.sidebar{background:#ffffff;border-right:1px solid var(--line)}
-.card,.inventory-card{background:#ffffff !important;border-color:var(--line) !important;color:var(--text) !important}
-.nav button{color:#475467}.nav button.active,.nav button:hover{background:#eef2ff;color:#111827}
-.badge,.pill{background:#eef2f7;color:#344054}.pill.good{background:#dcfce7;color:#166534}.pill.warn{background:#fef3c7;color:#92400e}
-input,select,textarea{background:#ffffff;border-color:#cbd5e1;color:#111827}
-.inventory-card .kv div,.inventory-card .actionbox{background:#f8fafc !important;border-color:#e2e8f0 !important}
-.mobile-bottom-nav{background:rgba(255,255,255,.97) !important;border-top-color:#d8dee9 !important}
-.mobile-bottom-nav button{color:#667085 !important}.mobile-bottom-nav button.active{color:#111827 !important;background:#eef2ff !important}
-pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;color:#111827}.btn{box-shadow:none}
-</style>
-
-
-<style>
-#reconcileResults .card{box-shadow:none}
-@media(max-width:700px){
-  #reconcilePanel .row .btn{width:100%}
-}
-</style>
-
-<style>
-.btn.import-btn{
-  background:#dbe3ee !important;
-  color:#1f2937 !important;
-  border:1px solid #b8c4d4 !important;
-}
-.recon-diff{border:1px solid #d8dee9;border-radius:10px;padding:10px;margin:8px 0;background:#fff}
-.recon-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.recon-value{border:1px solid #e2e8f0;border-radius:8px;padding:8px;background:#f8fafc;min-height:54px}
-.recon-value .lbl{display:block;font-size:10px;color:#667085;text-transform:uppercase;margin-bottom:3px}
-.recon-choice{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.recon-choice button{border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#344054;padding:8px;font-size:12px}
-.recon-choice button.selected{background:#e0ecff;color:#1d4ed8;border-color:#7aa2f7;font-weight:700}
-</style>
-
-<style>
-#itemModal .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-#itemModal .summary-cell{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px}
-#itemModal .summary-cell span{display:block;font-size:10px;color:#667085;text-transform:uppercase}
-@media(max-width:700px){#itemModal .row .btn{flex:1}}
-</style>
-
-<style>
-@media(max-width:700px){
-  #importSource{width:100% !important}
-}
-</style>
-
-<style>
-.photo-inbox-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-.photo-inbox-card{border:1px solid #d8dee9;border-radius:12px;padding:8px;background:#fff}
-.photo-inbox-card img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:9px}
-.photo-inbox-card .small{margin-top:6px}
-.photo-inbox-card .btn{width:100%;margin-top:6px;padding:7px;font-size:11px}
-@media(max-width:700px){
-  .photo-inbox-grid{grid-template-columns:1fr 1fr}
-}
+:root{--bg:#f7f8fb;--panel:#fff;--text:#111827;--muted:#667085;--line:#d8dee9;--primary:#2563eb;--good:#16a34a;--warn:#d97706;--bad:#dc2626}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Arial,sans-serif;padding-bottom:118px}
+header{padding:18px 16px 10px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
+.brand{font-size:22px;font-weight:800} .sub{font-size:12px;color:var(--muted);margin-top:3px}
+main{padding:14px;max-width:1100px;margin:auto} .page{display:none} .page.active{display:block}
+.grid{display:grid;gap:12px} .g2{grid-template-columns:repeat(2,minmax(0,1fr))} .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px} h2,h3{margin:0 0 10px}
+.metric{font-size:29px;font-weight:800} .small{font-size:12px} .muted{color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap} .spacer{height:12px}
+.btn{border:0;border-radius:9px;padding:10px 12px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}
+.btn.secondary{background:#e9eef8;color:#1f2937;border:1px solid #cbd5e1} .btn.good{background:var(--good)} .btn.warn{background:var(--warn)} .btn.bad{background:var(--bad)}
+input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#111827;font-size:16px}
+label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
+.badge,.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef2f7;color:#344054;font-size:11px}
+.pill.good{background:#dcfce7;color:#166534} .pill.warn{background:#fef3c7;color:#92400e} .pill.sold{background:#fee2e2;color:#991b1b}
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.98);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:6px 6px max(6px,env(safe-area-inset-bottom));z-index:100}
+.bottom-nav button{background:transparent;border:0;color:#667085;padding:7px 2px;font-size:10px;border-radius:8px} .bottom-nav button.active{background:#eef2ff;color:#111827}
+.bottom-nav .ico{display:block;font-size:16px;margin-bottom:2px}
+.action{border-bottom:1px solid #e5e7eb;padding:11px 0} .action:last-child{border:0}
+.inventory-toolbar{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin:10px 0}
+.inventory-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.inventory-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px} .inventory-card.sold{opacity:.62;background:#f8fafc}
+.inventory-title{font-weight:800;line-height:1.25;margin:8px 0} .inventory-photo{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:#eef2f7}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:9px 0} .kv>div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:8px}
+.kv span{display:block;font-size:9px;color:#667085;text-transform:uppercase}
+.bulk-bar{display:none;gap:6px;align-items:center;flex-wrap:wrap;background:#eef6ff;border:1px solid #bfdbfe;border-radius:10px;padding:8px;margin-bottom:10px} .bulk-bar.active{display:flex}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px} .photo-card{border:1px solid var(--line);border-radius:12px;padding:8px;background:#fff}
+.photo-card img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:9px} .photo-card .btn{width:100%;margin-top:6px;padding:7px;font-size:11px}
+.modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:1000;padding:10px;overflow:auto} .modal.open{display:block}
+.modal .inner{max-width:720px;margin:18px auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px} .summary-cell{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px} .summary-cell span{display:block;font-size:10px;color:#667085;text-transform:uppercase}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0} .gallery img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:9px;border:1px solid #e2e8f0}
+.recon-card{border:1px solid var(--line);border-radius:12px;padding:10px;margin:9px 0;background:#fff}
+.recon-diff{border:1px solid #e2e8f0;border-radius:10px;padding:9px;margin:8px 0} .recon-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.recon-value{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px;min-height:50px} .recon-value b{display:block;font-size:10px;color:#667085;text-transform:uppercase;margin-bottom:3px}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px} .choice button{border:1px solid #cbd5e1;background:#fff;padding:8px;border-radius:8px} .choice button.sel{background:#e0ecff;border-color:#7aa2f7;color:#1d4ed8;font-weight:700}
+.activity{padding:9px 0;border-bottom:1px solid #e5e7eb}
+@media(max-width:700px){.g4{grid-template-columns:1fr 1fr} .g2{grid-template-columns:1fr} .inventory-toolbar{grid-template-columns:1fr} .inventory-grid{grid-template-columns:1fr} .photo-grid{grid-template-columns:1fr 1fr} .gallery{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
-<div class="app">
-  <aside class="sidebar">
-    <div class="brand">Commerce OS</div>
-    <div class="sub">Prototype v0.9 • photo inbox • configurable by design</div>
-    <div class="nav" id="nav"></div>
-    <div class="card" style="margin-top:18px">
-      <div class="small muted">Prototype rule</div>
-      <div style="font-weight:700;margin-top:4px">Build → Measure → Learn → Update</div>
+<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.0 • inventory operations • configurable by design</div></header>
+<main>
+<section id="Today" class="page active">
+  <div class="grid g4">
+    <div class="card"><div class="small muted">Priority actions</div><div class="metric" id="mActions">0</div></div>
+    <div class="card"><div class="small muted">Active inventory</div><div class="metric" id="mInventory">0</div></div>
+    <div class="card"><div class="small muted">High-value items</div><div class="metric" id="mHigh">0</div></div>
+    <div class="card"><div class="small muted">Channels used</div><div class="metric" id="mChannels">0</div></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="card"><h3>What should I do today?</h3><div id="todayQueue"></div></div>
+</section>
+
+<section id="Source" class="page">
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><div><h3>Photo Inbox</h3><div class="small muted">Capture items first; match or create records afterward.</div></div>
+      <label for="photoInboxInput" class="btn good" style="margin:0;cursor:pointer;color:#fff">Add photos</label>
+      <input id="photoInboxInput" type="file" accept="image/*" capture="environment" multiple style="position:absolute;left:-9999px;opacity:0" onchange="addPhotosToInbox(event)">
     </div>
-  </aside>
-  <main class="main">
-    <div class="topbar">
-      <div><h1 id="pageTitle">Today</h1><div class="muted small">AI-assisted commerce operating system prototype</div></div>
-      <div class="row"><span class="badge">No Double Entry</span><span class="badge">Approval-first</span></div>
+    <div class="photo-grid" id="photoInboxGrid"></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="card">
+    <h3>Sourcing economics</h3>
+    <div class="small muted">Live AI identification/comps will plug into this workflow later; the current prototype evaluates economics you enter.</div>
+    <label>Item cost</label><input id="sourceCost" type="number" value="20">
+    <label>Expected sale price</label><input id="sourceSale" type="number" value="75">
+    <label>Estimated fees + shipping</label><input id="sourceFees" type="number" value="20">
+    <label>Owner minutes</label><input id="sourceMinutes" type="number" value="15">
+    <button class="btn good" onclick="analyzeSource()">Analyze BUY / TEST / PASS</button>
+    <div id="sourceResult" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<section id="Inventory" class="page">
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h3>Existing inventory</h3>
+      <div class="row">
+        <select id="importSource" style="width:auto"><option value="Generic">Import source</option><option>eBay</option><option>Poshmark</option><option>Mercari</option><option>Etsy</option><option>Depop</option><option>Vinted</option><option>Whatnot</option><option>Shopify</option><option>Vendoo</option><option value="Generic">Generic file</option></select>
+        <label for="inventoryImport" class="btn secondary" style="margin:0;cursor:pointer">Import</label>
+        <input id="inventoryImport" type="file" accept=".json,.csv,.tsv,application/json,text/csv,text/tab-separated-values" style="position:absolute;left:-9999px;opacity:0" onchange="importInventoryFile(event)">
+        <button class="btn secondary" onclick="exportInventory()">Export</button>
+        <button class="btn good" onclick="showAddItem()">Add item</button>
+      </div>
     </div>
-
-    <section id="Today" class="page active">
-      <div class="grid g4">
-        <div class="card"><div class="muted small">Priority actions</div><div class="metric" id="mActions">0</div></div>
-        <div class="card"><div class="muted small">Active inventory</div><div class="metric" id="mInventory">0</div></div>
-        <div class="card"><div class="muted small">High-value items</div><div class="metric" id="mHigh">0</div></div>
-        <div class="card"><div class="muted small">Connected channels</div><div class="metric" id="mChannels">0</div></div>
-      </div>
-      <div class="spacer"></div>
-      <div class="grid g2">
-        <div class="card"><h3>What should I do today?</h3><div id="todayQueue"></div></div>
-        <div class="card">
-          <h3>Time-based planner</h3>
-          <label>How much time do you have?</label>
-          <select id="timeBudget"><option value="30">30 minutes</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="300">5 hours</option></select>
-          <button class="btn" onclick="buildTimePlan()">Build my plan</button>
-          <div id="timePlan" class="small muted" style="margin-top:12px"></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="Source" class="page">
-      <div class="card" style="margin-bottom:14px">
-        <div class="row" style="justify-content:space-between">
-          <div>
-            <h3 style="margin-bottom:3px">Photo Inbox</h3>
-            <div class="muted small">Capture items first; reconcile or create records afterward.</div>
-          </div>
-          <label for="photoInboxInput" class="btn good" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin:0">Add photos</label>
-          <input id="photoInboxInput" type="file" accept="image/*" capture="environment" multiple style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" onchange="addPhotosToInbox(event)"/>
-        </div>
-        <div id="photoInboxGrid" class="photo-inbox-grid"></div>
-      </div>
-      <div class="grid g2">
-        <div class="card">
-          <h3>Camera sourcing assistant</h3>
-          <div class="muted small">Browser prototype: previews the photo and runs economics from your inputs. Live visual identification will plug into the AI connector later.</div>
-          <label>Item photo</label><input type="file" accept="image/*" capture="environment" id="sourcePhoto"/>
-          <img id="sourcePreview" class="preview"/>
-          <button class="btn secondary" id="sourceMoreBtn" onclick="toggleSourceDetails()" style="margin-top:10px">Add / edit economics</button>
-          <div id="sourceSecondary" class="source-secondary">
-          <label>What do you think it is? (optional)</label><input id="sourceTitle" placeholder="e.g., Farm Rio maxi dress"/>
-          <label>Item cost</label><input type="number" id="sourceCost" value="20"/>
-          <label>Expected sale price</label><input type="number" id="sourceSale" value="75"/>
-          <label>Estimated fees + shipping</label><input type="number" id="sourceFees" value="20"/>
-          <label>Estimated owner minutes</label><input type="number" id="sourceMinutes" value="15"/>
-          </div>
-          <button class="btn good" onclick="analyzeSource()" style="margin-top:10px;width:100%">Analyze BUY / TEST / PASS</button>
-        </div>
-        <div class="card"><h3>Sourcing decision</h3><div id="sourceResult" class="muted">Add an item to analyze.</div></div>
-      </div>
-    </section>
-
-    <section id="Inventory" class="page">
-      <div class="card">
-        <div class="row" style="justify-content:space-between"><h3>Existing inventory</h3>
-<div class="row">
-<select id="importSource" style="width:auto;min-width:132px">
-  <option value="Generic">Import source</option>
-  <option>eBay</option>
-  <option>Poshmark</option>
-  <option>Mercari</option>
-  <option>Etsy</option>
-  <option>Depop</option>
-  <option>Vinted</option>
-  <option>Whatnot</option>
-  <option>Shopify</option>
-  <option>Vendoo</option>
-  <option value="Generic">Generic file</option>
-</select>
-<label for="inventoryImport" class="btn import-btn" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin:0">Import</label>
-<button class="btn secondary" onclick="exportInventory()">Export</button>
-<button class="btn good" onclick="showAddItem()">Add item</button>
-</div></div>
-<input id="inventoryImport" type="file" accept=".json,.csv,.tsv,application/json,text/csv,text/tab-separated-values" onchange="importInventoryFile(event)" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"/>
-<div id="importMsg" class="small muted" style="margin:8px 0">Import accepts JSON or CSV.</div>
-<div id="reconcilePanel" class="card" style="display:none;margin:12px 0;background:#fbfdff">
-  <h3>Reconcile imported inventory</h3>
-  <div class="muted small">Nothing changes until you approve a reconciliation action. When fields differ, choose which value to keep.</div>
-  <div id="reconcileSummary" class="small" style="margin:10px 0"></div>
-  <div id="reconcileResults"></div>
-  <div class="row" style="margin-top:12px">
-    <button class="btn good" onclick="applyReconciliation()">Apply approved changes</button>
-    <button class="btn secondary" onclick="cancelReconciliation()">Cancel</button>
+    <div id="importMsg" class="small muted" style="margin:8px 0">Import reconciles before changing inventory.</div>
+    <div class="inventory-toolbar"><input id="inventorySearch" placeholder="Search existing inventory…" oninput="renderInventory()">
+      <select id="inventoryStatusFilter" onchange="renderInventory()"><option>All</option><option>Active</option><option>Unlisted</option><option>Research / Hold</option><option>Sold</option></select>
+      <select id="inventorySort" onchange="renderInventory()"><option value="priority">Sort: Priority</option><option value="oldest">Oldest first</option><option value="newest">Newest first</option><option value="priceHigh">Pricing high → low</option><option value="priceLow">Pricing low → high</option><option value="costHigh">Item cost high → low</option><option value="title">Title A → Z</option></select>
+    </div>
+    <div id="bulkBar" class="bulk-bar"><b id="bulkCount">0 selected</b><button class="btn secondary" onclick="bulkStatus('Active')">Set Active</button><button class="btn secondary" onclick="bulkStatus('Research / Hold')">Hold</button><button class="btn warn" onclick="bulkSold()">Mark Sold</button><button class="btn secondary" onclick="clearSelection()">Clear</button></div>
+    <div id="reconcilePanel" style="display:none"><h3>Reconcile imported inventory</h3><div class="small muted">Nothing changes until approved.</div><div id="reconcileSummary" class="small" style="margin:8px 0"></div>
+      <div class="row"><button class="btn secondary" onclick="allReconAction('MERGE')">Likely → Merge</button><button class="btn secondary" onclick="allReconAction('HOLD')">Hold all</button><button class="btn secondary" onclick="allFields('existing')">Keep all existing fields</button></div>
+      <div id="reconcileResults"></div><div class="row"><button class="btn good" onclick="applyReconciliation()">Apply approved changes</button><button class="btn secondary" onclick="cancelReconciliation()">Cancel</button></div>
+    </div>
+    <div id="addItemPanel" style="display:none;margin-top:10px"><h3>Add inventory item</h3>
+      <div class="grid g2"><div><label>Title</label><input id="newTitle"></div><div><label>Brand</label><input id="newBrand"></div><div><label>Category</label><input id="newCategory"></div><div><label>Pricing</label><input id="newAsk" type="number"></div><div><label>Item Cost</label><input id="newCost" type="number"></div><div><label>Quantity</label><input id="newQty" value="1"></div><div><label>Status</label><select id="newStatus"><option>Active</option><option>Unlisted</option><option>Research / Hold</option><option>Sold</option></select></div><div><label>Photos</label><input id="newPhotos" type="file" accept="image/*" capture="environment" multiple></div></div>
+      <label>Marketplaces</label><input id="newMarkets" placeholder="eBay, Poshmark"><label>Recommended action</label><input id="newAction" value="Review"><label>Notes</label><textarea id="newNotes"></textarea>
+      <div class="row"><button class="btn good" onclick="addItem()">Save item</button><button class="btn secondary" onclick="hideAddItem()">Cancel</button></div>
+    </div>
+    <div class="inventory-grid" id="inventoryCards"></div>
   </div>
-</div>
-<div id="addItemPanel" class="card" style="display:none;margin:10px 0;background:#0b1220">
-  <h3>Add inventory item</h3>
-  <div class="grid g2">
-    <div><label>Title</label><input id="newTitle"/></div>
-    <div><label>Brand</label><input id="newBrand"/></div>
-    <div><label>Category</label><input id="newCategory"/></div>
-    <div><label>Pricing</label><input id="newAsk" type="number"/></div><div><label>Item Cost</label><input id="newCost" type="number" step="0.01" placeholder="0.00"/></div><div><label>Item Photo</label><input id="newPhoto" type="file" accept="image/*" capture="environment"/></div>
-    <div><label>Quantity</label><input id="newQty" value="1"/></div>
-    <div><label>Status</label><select id="newStatus"><option>Active</option><option>Research / Hold</option><option>Unlisted</option><option>Sold</option></select></div>
-  </div>
-  <label>Marketplaces (comma separated)</label><input id="newMarkets" placeholder="eBay, Poshmark"/>
-  <label>Recommended action</label><input id="newAction" placeholder="Optimize title + price test"/>
-  <div class="row" style="margin-top:10px"><button class="btn good" onclick="addItem()">Save item</button><button class="btn secondary" onclick="hideAddItem()">Cancel</button></div>
-</div>
-        <table><thead><tr><th>Item</th><th>Status</th><th>Pricing</th><th>Age</th><th>Channels</th><th>Recommended action</th></tr></thead><tbody id="inventoryBody"></tbody></table><div id="inventoryCards" class="inventory-cards"></div>
-      </div>
-    </section>
+</section>
 
-    <section id="Sell" class="page">
-      <div class="grid g2">
-        <div class="card"><h3>Cash conversion queue</h3><div id="sellQueue"></div></div>
-        <div class="card">
-          <h3>Platform-specific price calculator</h3>
-          <label>Target net proceeds</label><input id="targetNet" type="number" value="120"/>
-          <label>Platform fee %</label><input id="feePct" type="number" value="20"/>
-          <label>Seller-funded shipping</label><input id="shipCost" type="number" value="0"/>
-          <label>Expected offer discount %</label><input id="offerPct" type="number" value="15"/>
-          <button class="btn" onclick="priceCalc()">Calculate recommended ask</button>
-          <div id="priceResult" style="margin-top:12px"></div>
-        </div>
-      </div>
-    </section>
+<section id="Sell" class="page">
+  <div class="card"><h3>Cash conversion queue</h3><div id="sellQueue"></div></div>
+  <div class="spacer"></div>
+  <div class="card"><h3>Platform-specific pricing calculator</h3><label>Target net proceeds</label><input id="targetNet" type="number" value="120"><label>Platform fee %</label><input id="feePct" type="number" value="20"><label>Seller-funded shipping</label><input id="shipCost" type="number" value="0"><label>Expected offer discount %</label><input id="offerPct" type="number" value="15"><button class="btn" onclick="priceCalc()">Calculate pricing</button><div id="priceResult" style="margin-top:10px"></div></div>
+</section>
 
-    <section id="Create" class="page">
-      <div class="grid g2">
-        <div class="card">
-          <h3>Listing studio</h3>
-          <label>Product / item</label><input id="listingItem" placeholder="Farm Rio floral maxi dress size XS"/>
-          <label>Condition</label><input id="listingCondition" placeholder="NWT / excellent / vintage good"/>
-          <label>Key details</label><textarea id="listingDetails" rows="5" placeholder="linen blend, blue print, size XS, measurements..."></textarea>
-          <label>Target marketplace</label><select id="listingChannel"><option>eBay</option><option>Poshmark</option><option>Mercari</option><option>Etsy</option><option>Depop</option><option>Vinted</option><option>Whatnot</option><option>Shopify</option></select>
-          <button class="btn" onclick="generateListing()">Generate draft</button>
-        </div>
-        <div class="card"><h3>Draft output</h3><pre id="listingOutput" style="white-space:pre-wrap;color:#e2e8f0"></pre></div>
-      </div>
-      <div class="spacer"></div>
-      <div class="grid g2">
-        <div class="card">
-          <h3>Social content studio</h3>
-          <label>Objective</label><select id="contentObjective"><option>Sell product</option><option>Grow followers</option><option>Grow email list</option><option>Launch collection</option></select>
-          <label>Mode</label><select id="contentMode"><option>Faceless</option><option>On camera</option><option>Product only</option><option>My likeness (opt-in required)</option><option>My voice (opt-in required)</option></select>
-          <label>Product</label><input id="contentProduct" placeholder="Vintage sequin bag"/>
-          <button class="btn" onclick="generateContent()">Create content plan</button>
-        </div>
-        <div class="card"><h3>Content plan</h3><div id="contentOutput" class="small muted"></div></div>
-      </div>
-    </section>
+<section id="Create" class="page">
+  <div class="card"><h3>Listing studio</h3><label>Item</label><input id="listingItem"><label>Condition</label><input id="listingCondition"><label>Key details</label><textarea id="listingDetails"></textarea><label>Marketplace</label><select id="listingChannel"><option>eBay</option><option>Poshmark</option><option>Mercari</option><option>Etsy</option><option>Depop</option><option>Vinted</option><option>Whatnot</option><option>Shopify</option></select><button class="btn" onclick="generateListing()">Generate draft</button><pre id="listingOutput" style="white-space:pre-wrap"></pre></div>
+</section>
 
-    <section id="Grow" class="page">
-      <div class="grid g3">
-        <div class="card"><h3>Growth brief</h3><div class="small">Focus: contribution profit, qualified audience growth, email ownership, and profitable retargeting.</div></div>
-        <div class="card"><h3>Paid media guardrail</h3><div class="metric">$<span id="capDisplay">25</span></div><div class="muted small">Daily test cap</div></div>
-        <div class="card"><h3>Audience objective</h3><div class="metric">Owned</div><div class="muted small">Followers + email + repeat buyers</div></div>
-      </div>
-      <div class="spacer"></div>
-      <div class="card">
-        <h3>Media buyer experiment builder</h3>
-        <div class="grid g3">
-          <div><label>Channel</label><select id="adChannel"><option>Meta Ads</option><option>TikTok Ads</option><option>Pinterest Ads</option></select></div>
-          <div><label>Test budget</label><input type="number" id="adBudget" value="50"/></div>
-          <div><label>Expected contribution margin %</label><input type="number" id="adMargin" value="50"/></div>
-        </div>
-        <label>Product / collection</label><input id="adProduct" placeholder="Halloween collection"/>
-        <button class="btn warn" onclick="buildAdPlan()">Build approval plan</button>
-        <div id="adPlan" class="small" style="margin-top:12px"></div>
-      </div>
-    </section>
+<section id="Grow" class="page"><div class="card"><h3>Growth engine</h3><div class="small muted">Content, Pinterest, email, Meta/TikTok ad planning remain approval-first until connected.</div><label>Product / collection</label><input id="growthProduct"><label>Objective</label><select id="growthObjective"><option>Sell product</option><option>Grow followers</option><option>Grow email list</option></select><button class="btn" onclick="growthPlan()">Build plan</button><div id="growthOutput" style="margin-top:10px"></div></div></section>
 
-    <section id="Money" class="page">
-      <div class="grid g4">
-        <div class="card"><div class="muted small">Revenue</div><div class="metric">$<span id="rev">0</span></div></div>
-        <div class="card"><div class="muted small">Contribution profit</div><div class="metric">$<span id="profit">0</span></div></div>
-        <div class="card"><div class="muted small">Owner hours</div><div class="metric"><span id="hours">0</span></div></div>
-        <div class="card"><div class="muted small">Profit / owner hour</div><div class="metric">$<span id="pph">0</span></div></div>
-      </div>
-      <div class="spacer"></div>
-      <div class="card">
-        <h3>Add outcome</h3>
-        <div class="grid g4">
-          <div><label>Revenue</label><input id="mRev" type="number" value="100"/></div>
-          <div><label>Item cost + fees + shipping</label><input id="mCost" type="number" value="45"/></div>
-          <div><label>Owner minutes</label><input id="mMin" type="number" value="15"/></div>
-          <div><label>Note</label><input id="mNote" placeholder="Sold Farm Rio dress"/></div>
-        </div>
-        <button class="btn good" onclick="addOutcome()">Record outcome</button>
-        <div id="outcomeLog" class="small muted" style="margin-top:12px"></div>
-      </div>
-    </section>
+<section id="Money" class="page">
+  <div class="grid g4"><div class="card"><div class="small muted">Revenue</div><div class="metric">$<span id="rev">0</span></div></div><div class="card"><div class="small muted">Contribution profit</div><div class="metric">$<span id="profit">0</span></div></div><div class="card"><div class="small muted">Owner hours</div><div class="metric"><span id="hours">0</span></div></div><div class="card"><div class="small muted">Profit / hour</div><div class="metric">$<span id="pph">0</span></div></div></div>
+  <div class="spacer"></div><div class="card"><h3>Add outcome</h3><label>Revenue</label><input id="mRev" type="number" value="100"><label>Item cost + fees + shipping</label><input id="mCost" type="number" value="45"><label>Owner minutes</label><input id="mMin" type="number" value="15"><label>Note</label><input id="mNote"><button class="btn good" onclick="addOutcome()">Record outcome</button><div id="outcomeLog" class="small" style="margin-top:10px"></div></div>
+</section>
 
-    <section id="Lab" class="page">
-      <div class="grid g2">
-        <div class="card">
-          <h3>Configurable rules</h3>
-          <label>Minimum expected sourcing profit</label><input id="ruleMinProfit" type="number"/>
-          <label>High-value threshold</label><input id="ruleHighValue" type="number"/>
-          <label>Max routine markdown %</label><input id="ruleMarkdown" type="number"/>
-          <label>Daily ad test cap</label><input id="ruleAdCap" type="number"/>
-          <label><input id="ruleLikeness" type="checkbox" style="width:auto"/> Enable likeness / voice features</label>
-          <label>Default marketplace fee assumptions (%)</label>
-<div class="grid g2">
-  <div><label>eBay</label><input id="feeEbay" type="number"/></div>
-  <div><label>Poshmark</label><input id="feePosh" type="number"/></div>
-  <div><label>Mercari</label><input id="feeMercari" type="number"/></div>
-  <div><label>Etsy</label><input id="feeEtsy" type="number"/></div>
-</div>
-<button class="btn" onclick="saveRules()">Save rules</button>
-          <div id="ruleMsg" class="small muted" style="margin-top:10px"></div>
-        </div>
-        <div class="card">
-          <h3>Experiment & blind-spot log</h3>
-          <label>What did we learn / what is missing?</label><textarea id="blindspot" rows="5" placeholder="Example: Poshmark offer behavior differs by category..."></textarea>
-          <button class="btn secondary" onclick="addBlindspot()">Add to Lab</button>
-          <div id="blindspotLog" class="small" style="margin-top:12px"></div>
-        </div>
-      </div>
-      <div class="spacer"></div>
-      <div class="spacer"></div>
-<div class="card">
-  <h3>Inventory reconciliation</h3>
-  <div class="small muted">Existing inventory can be built from photos, manual additions, selling-app imports, and uploaded inventory lists. Imports are reconciled first; nothing overwrites existing inventory automatically. Field-level differences require an explicit keep/use choice. Future marketplace connectors can also bring listing photos and platform IDs into the same matching engine.</div>
-</div>
-<div class="spacer"></div>
-<div class="card">
-  <h3>Pricing model</h3>
-  <div class="small muted">“Pricing” is the product/listing price field. “Item Cost” is what you paid for the item. Platform-specific pricing can still differ by marketplace.</div>
-</div>
-<div class="spacer"></div>
-<div class="card">
-  <h3>Data backup & restore</h3>
-  <div class="muted small">Back up inventory, settings, money outcomes, and blind spots in one file.</div>
-  <div class="row" style="margin-top:10px">
-    <button class="btn secondary" onclick="exportFullBackup()">Download full backup</button>
-    <button class="btn secondary" onclick="document.getElementById('restoreBackup').click()">Restore backup</button>
-    <input id="restoreBackup" type="file" accept=".json,application/json" style="display:none" onchange="restoreFullBackup(event)"/>
-  </div>
-</div>
-<div class="spacer"></div>
-<div class="card"><h3>Channel registry</h3><table><thead><tr><th>Channel</th><th>Type</th><th>Enabled</th><th>Connection</th></tr></thead><tbody id="channelBody"></tbody></table></div>
-    </section>
-  </main>
-</div>
+<section id="Lab" class="page">
+  <div class="card"><h3>Rules</h3><label>Minimum expected sourcing profit</label><input id="ruleMinProfit" type="number"><label>High-value threshold</label><input id="ruleHighValue" type="number"><label>Max routine markdown %</label><input id="ruleMarkdown" type="number"><label>Daily ad test cap</label><input id="ruleAdCap" type="number"><label><input id="ruleLikeness" type="checkbox" style="width:auto"> Enable likeness / voice features</label><button class="btn" onclick="saveRules()">Save rules</button></div>
+  <div class="spacer"></div>
+  <div class="card"><h3>Activity history</h3><div id="activityLog"></div><button class="btn secondary" onclick="clearActivity()">Clear history</button></div>
+  <div class="spacer"></div>
+  <div class="card"><h3>Backup & restore</h3><div class="row"><button class="btn secondary" onclick="exportBackup()">Download full backup</button><label for="restoreBackup" class="btn secondary" style="margin:0;cursor:pointer">Restore backup</label><input id="restoreBackup" type="file" accept=".json" style="position:absolute;left:-9999px;opacity:0" onchange="restoreBackupFile(event)"></div></div>
+</section>
+</main>
+
+<nav class="bottom-nav" id="nav"></nav>
+
+<div id="itemModal" class="modal"><div class="inner"><div class="row" style="justify-content:space-between"><div><div class="small muted">ITEM DETAILS</div><h3 id="modalTitle"></h3></div><button class="btn secondary" onclick="closeItem()">Close</button></div><div id="modalGallery"></div><div id="modalSummary"></div><div id="modalActions" class="row" style="margin-top:12px"><button class="btn" onclick="editCurrentItem()">Edit item</button><button class="btn warn" onclick="markCurrentSold()">Mark as sold</button></div>
+<div id="editPanel" style="display:none"><div class="grid g2"><div><label>Title</label><input id="editTitle"></div><div><label>Brand</label><input id="editBrand"></div><div><label>Category</label><input id="editCategory"></div><div><label>Pricing</label><input id="editPricing" type="number"></div><div><label>Item Cost</label><input id="editCost" type="number"></div><div><label>Quantity</label><input id="editQty"></div><div><label>Status</label><select id="editStatus"><option>Active</option><option>Unlisted</option><option>Research / Hold</option><option>Sold</option></select></div><div><label>Season</label><input id="editSeason"></div></div><label>Marketplaces</label><input id="editMarkets"><label>Marketplace IDs</label><textarea id="editIds"></textarea><label>Recommended action</label><input id="editAction"><label>Notes</label><textarea id="editNotes"></textarea><label>Add photos</label><input id="editPhotos" type="file" accept="image/*" capture="environment" multiple><div class="row"><button class="btn good" onclick="saveCurrentItem()">Save changes</button><button class="btn secondary" onclick="cancelEdit()">Cancel edit</button></div></div></div></div>
+
 <script>
+const DEFAULT_STATE={"settings": {"minimumExpectedProfit": 40, "highValueThreshold": 175, "maxRoutineMarkdownPct": 20, "adSpendDailyCap": 25, "likenessVoiceOptIn": false, "channelFees": {"eBay": 15, "Poshmark": 20, "Mercari": 10, "Etsy": 10, "Depop": 10, "Vinted": 5, "Whatnot": 12, "Shopify": 3}}, "inventory": [{"id": "P3-001", "title": "Loungefly Disney Minnie Mouse Pink Ghost Glow-in-the-Dark Mini Backpack", "brand": "Loungefly", "category": "Bags & Accessories", "status": "Active", "ask": 225, "itemCost": 0, "daysListed": 730, "season": "Halloween", "marketplaces": ["eBay", "Poshmark"], "recommendedAction": "Seasonal reprice + listing refresh", "recommendedRange": "$89–$119", "confidence": "Medium", "quantity": "1+", "notes": "", "photos": [], "marketplaceIds": {}, "sourceRecords": []}, {"id": "P3-002", "title": "Farm Rio x Alberto Pitta Blue Print Knot Linen Blend Midi Dress — Size S", "brand": "Farm Rio", "category": "Women's Clothing", "status": "Active", "ask": 298, "itemCost": 0, "daysListed": 780, "season": "Evergreen", "marketplaces": ["eBay", "Poshmark"], "recommendedAction": "Validate market + optimize title/category", "recommendedRange": "$179–$225", "confidence": "Medium", "quantity": "1", "notes": "", "photos": [], "marketplaceIds": {}, "sourceRecords": []}, {"id": "P3-004", "title": "Lilly Pulitzer NWT Aston Maxi Set — Amalfi Blue — Size M", "brand": "Lilly Pulitzer", "category": "Women's Clothing", "status": "Active", "ask": 298, "itemCost": 0, "daysListed": 754, "season": "Resort/Spring-Summer", "marketplaces": ["eBay", "Poshmark"], "recommendedAction": "Validate comps + high-value optimization", "recommendedRange": "$149–$189", "confidence": "High", "quantity": "1", "notes": "", "photos": [], "marketplaceIds": {}, "sourceRecords": []}, {"id": "P3-005", "title": "Farm Rio Tropical Tapestry Long-Sleeve Minidress — Size S", "brand": "Farm Rio", "category": "Women's Clothing", "status": "Active", "ask": 198, "itemCost": 0, "daysListed": 775, "season": "Evergreen", "marketplaces": ["eBay", "Poshmark"], "recommendedAction": "Reprice first + searchable title", "recommendedRange": "$139–$159", "confidence": "High", "quantity": "1", "notes": "", "photos": [], "marketplaceIds": {}, "sourceRecords": []}, {"id": "P3-012", "title": "Vintage Makeup Compact", "brand": "Unknown", "category": "Vintage", "status": "Research / Hold", "ask": 335, "itemCost": 0, "daysListed": 855, "season": "Evergreen", "marketplaces": ["eBay", "Poshmark", "Mercari"], "recommendedAction": "Identify precisely + validate sold comps", "recommendedRange": "Hold pending research", "confidence": "Low", "quantity": "1", "notes": "", "photos": [], "marketplaceIds": {}, "sourceRecords": []}], "photoInbox": [], "activityLog": [], "money": {"revenue": 0, "profit": 0, "minutes": 0, "outcomes": []}};
+let state=null,currentItemId=null,reconciliationPlan=[];
 const pages=["Today","Source","Inventory","Sell","Create","Grow","Money","Lab"];
-let state=null;
-let money={revenue:0,profit:0,minutes:0,outcomes:[]};
-let blindspots=[];
+const icons={Today:"⌂",Source:"⌕",Inventory:"▦",Sell:"$",Create:"✦",Grow:"↗",Money:"◉",Lab:"⚙"};
 
-const EMBEDDED_SEED = {"settings":{"businessGoal":"Maximize after-tax cash while building a scalable 5\u201310 hour/week business","cashWeight":40,"profitWeight":30,"ownerTimeWeight":20,"learningWeight":10,"minimumExpectedProfit":40,"highValueThreshold":175,"maxRoutineMarkdownPct":20,"seasonalLeadMonths":3,"taxReservePct":30,"weeklyOwnerHours":10,"allowPlatformSpecificPricing":true,"noDoubleEntry":true,"likenessVoiceOptIn":false,"adSpendDailyCap":25,"agentAuthority":{"inventory":1,"listing":2,"pricing":1,"sourcing":1,"content":2,"mediaBuyer":1}},"inventory":[{"id":"P3-001","title":"Loungefly Disney Minnie Mouse Pink Ghost Glow-in-the-Dark Mini Backpack","category":"Bags & Accessories","brand":"Loungefly","status":"Active","ask":225,"daysListed":730,"season":"Halloween","marketplaces":["eBay","Poshmark"],"recommendedAction":"Seasonal reprice + listing refresh","recommendedRange":"$89\u2013$119","confidence":"Medium","quantity":"1+"},{"id":"P3-002","title":"Farm Rio x Alberto Pitta Blue Print Knot Linen Blend Midi Dress \u2014 Size S","category":"Women's Clothing","brand":"Farm Rio","status":"Active","ask":298,"daysListed":780,"season":"Evergreen","marketplaces":["eBay","Poshmark"],"recommendedAction":"Validate market + optimize title/category","recommendedRange":"$179\u2013$225","confidence":"Medium","quantity":1},{"id":"P3-004","title":"Lilly Pulitzer NWT Aston Maxi Set \u2014 Amalfi Blue \u2014 Size M","category":"Women's Clothing","brand":"Lilly Pulitzer","status":"Active","ask":298,"daysListed":754,"season":"Resort/Spring-Summer","marketplaces":["eBay","Poshmark"],"recommendedAction":"Validate comps + high-value optimization","recommendedRange":"$149\u2013$189","confidence":"High","quantity":1},{"id":"P3-005","title":"Farm Rio Tropical Tapestry Long-Sleeve Minidress \u2014 Size S","category":"Women's Clothing","brand":"Farm Rio","status":"Active","ask":198,"daysListed":775,"season":"Evergreen","marketplaces":["eBay","Poshmark"],"recommendedAction":"Reprice first + searchable title","recommendedRange":"$139\u2013$159","confidence":"High","quantity":1},{"id":"P3-012","title":"Vintage Makeup Compact","category":"Vintage","brand":"Unknown","status":"Research / Hold","ask":335,"daysListed":855,"season":"Evergreen","marketplaces":["eBay","Poshmark","Mercari"],"recommendedAction":"Identify precisely + validate sold comps","recommendedRange":"Hold pending research","confidence":"Low","quantity":1}],"channels":[{"name":"eBay","type":"marketplace","enabled":true,"connection":"prototype"},{"name":"Poshmark","type":"marketplace","enabled":true,"connection":"prototype"},{"name":"Mercari","type":"marketplace","enabled":true,"connection":"prototype"},{"name":"Vinted","type":"marketplace","enabled":false,"connection":"not connected"},{"name":"Etsy","type":"marketplace","enabled":false,"connection":"not connected"},{"name":"Depop","type":"marketplace","enabled":false,"connection":"not connected"},{"name":"Whatnot","type":"live commerce","enabled":false,"connection":"not connected"},{"name":"Shopify","type":"owned store","enabled":false,"connection":"not connected"},{"name":"Pinterest","type":"growth/discovery","enabled":false,"connection":"not connected"},{"name":"Meta Ads","type":"paid media","enabled":false,"connection":"not connected"},{"name":"TikTok Ads","type":"paid media","enabled":false,"connection":"not connected"},{"name":"Canva","type":"design","enabled":false,"connection":"not connected"},{"name":"Printify","type":"POD","enabled":false,"connection":"not connected"},{"name":"Printful","type":"POD","enabled":false,"connection":"not connected"},{"name":"Gelato","type":"POD","enabled":false,"connection":"not connected"}]};
+function loadState(){
+  try{state=JSON.parse(localStorage.getItem("commerceState")||"null")}catch(e){}
+  if(!state) state=JSON.parse(JSON.stringify(DEFAULT_STATE));
+  if(!state.photoInbox)state.photoInbox=[];
+  if(!state.activityLog)state.activityLog=[];
+  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};
+  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});
+}
+function persist(){try{localStorage.setItem("commerceState",JSON.stringify(state))}catch(e){}}
+function log(action,item=null,details=""){state.activityLog.unshift({at:new Date().toISOString(),action,itemId:item?.id||"",title:item?.title||"",details});state.activityLog=state.activityLog.slice(0,250);}
 function init(){
-  state = JSON.parse(JSON.stringify(EMBEDDED_SEED));
-  try {
-    const saved=localStorage.getItem('commerceState'); if(saved) state=JSON.parse(saved);
-    const sm=localStorage.getItem('commerceMoney'); if(sm) money=JSON.parse(sm);
-    const sb=localStorage.getItem('commerceBlindspots'); if(sb) blindspots=JSON.parse(sb);
-  } catch(e) {
-    // iOS file preview may restrict storage; app still works with embedded defaults.
-  }
-  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(x.notes===undefined)x.notes='';}); if(!state.photoInbox)state.photoInbox=[]; buildNav(); buildMobileNav(); renderAll();
+  loadState(); buildNav(); renderAll();
 }
-function persist(){try{localStorage.setItem('commerceState',JSON.stringify(state));}catch(e){}}
-function buildNav(){
-  const n=document.getElementById('nav'); n.innerHTML="";
-  pages.forEach((p,i)=>{const b=document.createElement('button');b.textContent=p;b.className=i===0?'active':'';b.onclick=()=>showPage(p,b);n.appendChild(b);});
-}
-const navIcons={Today:"⌂",Source:"⌕",Inventory:"▦",Sell:"$",Create:"✦",Grow:"↗",Money:"◉",Lab:"⚙"};
-function buildMobileNav(){
-  const n=document.getElementById('mobileNav'); if(!n)return; n.innerHTML="";
-  pages.forEach((p,i)=>{const b=document.createElement('button');b.innerHTML=`<span class="ico">${navIcons[p]}</span>${p}`;b.className=i===0?'active':'';b.onclick=()=>showPageMobile(p,b);n.appendChild(b);});
-}
-function showPageMobile(p,b){
-  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
-  document.getElementById(p).classList.add('active');
-  document.querySelectorAll('.mobile-bottom-nav button').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');document.getElementById('pageTitle').textContent=p;window.scrollTo(0,0);
-}
-function toggleSourceDetails(){
-  const el=document.getElementById('sourceSecondary');el.classList.toggle('open');
-  document.getElementById('sourceMoreBtn').textContent=el.classList.contains('open')?'Hide economics':'Add / edit economics';
-}
+function buildNav(){const n=document.getElementById("nav");n.innerHTML="";pages.forEach((p,i)=>{const b=document.createElement("button");b.innerHTML=`<span class="ico">${icons[p]}</span>${p}`;b.className=i===0?"active":"";b.onclick=()=>showPage(p,b);n.appendChild(b);})}
+function showPage(p,b){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(p).classList.add("active");document.querySelectorAll(".bottom-nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");window.scrollTo(0,0);}
+function actionScore(x){let v=(Number(x.ask||0)/3)+(Number(x.daysListed||0)/20);if(x.season==="Halloween")v+=18;if((x.status||"").includes("Research"))v-=15;if(x.status==="Sold")v=-999;return Math.round(v)}
+function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();}
+function renderMetrics(){const active=state.inventory.filter(x=>x.status!=="Sold");mInventory.textContent=active.length;mHigh.textContent=active.filter(x=>Number(x.ask)>=state.settings.highValueThreshold).length;mActions.textContent=active.length;mChannels.textContent=new Set(active.flatMap(x=>x.marketplaces||[])).size;}
+function renderQueues(){const list=state.inventory.filter(x=>x.status!=="Sold").sort((a,b)=>actionScore(b)-actionScore(a));const h=list.map((x,i)=>`<div class="action"><b>${i+1}. ${x.title}</b><div class="small muted">${x.recommendedAction||"Review"} • ${x.recommendedRange||""}</div></div>`).join("");todayQueue.innerHTML=h;sellQueue.innerHTML=h;}
 
-let currentItemId=null;
-function marketplaceIdsToText(obj){return Object.entries(obj||{}).map(([k,v])=>`${k}: ${v}`).join("\n");}
-function textToMarketplaceIds(text){
-  const out={}; String(text||"").split(/\r?\n/).forEach(line=>{
-    const i=line.indexOf(":"); if(i>0){const k=line.slice(0,i).trim(),v=line.slice(i+1).trim();if(k&&v)out[k]=v;}
-  }); return out;
-}
-function openItem(id){
-  const x=state.inventory.find(i=>i.id===id); if(!x)return;
-  currentItemId=id;
-  modalTitle.textContent=x.title;
-  modalPhotoWrap.innerHTML=x.imageData?`<img src="${x.imageData}" style="width:100%;max-height:280px;object-fit:cover;border-radius:12px">`:"";
-  const gross=Math.max(0,Number(x.ask||0)-Number(x.itemCost||0));
-  modalSummary.innerHTML=`<div class="summary-grid">
-    <div class="summary-cell"><span>Pricing</span><b>$${Number(x.ask||0).toFixed(2)}</b></div>
-    <div class="summary-cell"><span>Item Cost</span><b>$${Number(x.itemCost||0).toFixed(2)}</b></div>
-    <div class="summary-cell"><span>Status</span><b>${x.status||"—"}</b></div>
-    <div class="summary-cell"><span>Quantity</span><b>${x.quantity||"—"}</b></div>
-    <div class="summary-cell"><span>Age</span><b>${x.daysListed||0} days</b></div>
-    <div class="summary-cell"><span>Gross Spread</span><b>$${gross.toFixed(2)}</b></div>
-  </div><div style="margin-top:10px"><b>Marketplaces:</b> ${(x.marketplaces||[]).join(", ")||"—"}</div>
-  <div style="margin-top:6px"><b>Recommended action:</b> ${x.recommendedAction||"—"}</div>
-  <div style="margin-top:6px"><b>Source records:</b> ${(x.sourceRecords||[]).map(r=>r.source+(r.listingId?` #${r.listingId}`:"")).join(", ")||"—"}</div>
-  <div style="margin-top:6px"><b>Notes:</b> ${x.notes||"—"}</div>`;
-  modalViewActions.style.display="flex"; modalEditPanel.style.display="none"; itemModal.style.display="block";
-}
-function closeItemModal(){currentItemId=null;itemModal.style.display="none";}
-function startEditItem(){
-  const x=state.inventory.find(i=>i.id===currentItemId); if(!x)return;
-  editTitle.value=x.title||"";editBrand.value=x.brand||"";editCategory.value=x.category||"";
-  editPricing.value=x.ask||0;editCost.value=x.itemCost||0;editQty.value=x.quantity||"1";
-  editStatus.value=x.status||"Active";editSeason.value=x.season||"Evergreen";
-  editMarkets.value=(x.marketplaces||[]).join(", ");editMarketplaceIds.value=marketplaceIdsToText(x.marketplaceIds);
-  editAction.value=x.recommendedAction||"";editNotes.value=x.notes||"";editPhoto.value="";
-  modalViewActions.style.display="none";modalEditPanel.style.display="block";
-}
-function cancelItemEdit(){modalViewActions.style.display="flex";modalEditPanel.style.display="none";}
-async function saveItemEdits(){
-  const x=state.inventory.find(i=>i.id===currentItemId); if(!x)return;
-  x.title=editTitle.value.trim()||x.title;x.brand=editBrand.value.trim()||"Unknown";x.category=editCategory.value.trim()||"Other";
-  x.ask=Number(editPricing.value||0);x.itemCost=Number(editCost.value||0);x.quantity=editQty.value||"1";x.status=editStatus.value;
-  x.season=editSeason.value.trim()||"Evergreen";x.marketplaces=editMarkets.value.split(",").map(s=>s.trim()).filter(Boolean);
-  x.marketplaceIds=textToMarketplaceIds(editMarketplaceIds.value);x.recommendedAction=editAction.value.trim()||"Review";x.notes=editNotes.value.trim();
-  const f=editPhoto.files[0]; if(f)x.imageData=await fileToDataURL(f);
-  persist();renderAll();openItem(currentItemId);
-}
-function markCurrentItemSold(){
-  const x=state.inventory.find(i=>i.id===currentItemId); if(!x)return;
-  if(confirm(`Mark "${x.title}" as sold?`)){x.status="Sold";persist();renderAll();openItem(currentItemId);}
-}
+function visibleInventory(){const q=(inventorySearch.value||"").toLowerCase();const st=inventoryStatusFilter.value;let a=state.inventory.filter(x=>(st==="All"||x.status===st)&&([x.title,x.brand,x.category,(x.marketplaces||[]).join(" "),x.notes].join(" ").toLowerCase().includes(q)));switch(inventorySort.value){case"oldest":a.sort((a,b)=>b.daysListed-a.daysListed);break;case"newest":a.sort((a,b)=>a.daysListed-b.daysListed);break;case"priceHigh":a.sort((a,b)=>b.ask-a.ask);break;case"priceLow":a.sort((a,b)=>a.ask-b.ask);break;case"costHigh":a.sort((a,b)=>b.itemCost-a.itemCost);break;case"title":a.sort((a,b)=>a.title.localeCompare(b.title));break;default:a.sort((a,b)=>actionScore(b)-actionScore(a));}return a;}
+function renderInventory(){inventoryCards.innerHTML=visibleInventory().map(x=>`<div class="inventory-card ${x.status==="Sold"?"sold":""}"><div class="row" style="justify-content:space-between"><label style="margin:0"><input type="checkbox" style="width:auto" ${x.selected?"checked":""} onchange="selectItem('${x.id}',this.checked)"> Select</label>${x.status==="Sold"?'<span class="pill sold">SOLD</span>':""}</div>${x.photos?.length?`<img class="inventory-photo" src="${x.photos[0]}">`:""}<div class="inventory-title">${x.title}</div><div class="row"><span class="pill">${x.status}</span><span class="pill">${x.brand}</span><span class="pill">${x.quantity} qty</span></div><div class="kv"><div><span>Pricing</span><b>${moneyFmt(x.ask)}</b></div><div><span>Item Cost</span><b>${moneyFmt(x.itemCost)}</b></div><div><span>Age</span><b>${x.daysListed}d</b></div></div><div class="small muted">${(x.marketplaces||[]).join(" • ")}</div><div class="small"><b>Gross spread:</b> ${moneyFmt(Number(x.ask)-Number(x.itemCost))}</div><div class="small" style="margin-top:6px"><b>Recommended:</b> ${x.recommendedAction||"Review"}</div><button class="btn secondary" style="width:100%;margin-top:8px" onclick="openItem('${x.id}')">Open item</button></div>`).join("");renderBulk();}
+function moneyFmt(v){return "$"+Number(v||0).toFixed(2)}
+function selectItem(id,c){const x=state.inventory.find(i=>i.id===id);x.selected=c;persist();renderBulk();}
+function renderBulk(){const n=state.inventory.filter(x=>x.selected).length;bulkCount.textContent=n+" selected";bulkBar.classList.toggle("active",n>0)}
+function clearSelection(){state.inventory.forEach(x=>x.selected=false);persist();renderInventory();}
+function bulkStatus(s){const a=state.inventory.filter(x=>x.selected);a.forEach(x=>{x.status=s;x.selected=false;log("Bulk status → "+s,x)});persist();renderAll();}
+function bulkSold(){const a=state.inventory.filter(x=>x.selected);if(!a.length||!confirm(`Mark ${a.length} selected item(s) sold?`))return;a.forEach(x=>{x.status="Sold";x.selected=false;log("Marked sold",x)});persist();renderAll();}
 
-function exportInventory(){
-  const blob=new Blob(["\ufeff"+JSON.stringify(state.inventory,null,2)],{type:"application/json;charset=utf-8"}); const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="commerce_os_inventory.json";a.click();
-}
-document.addEventListener("DOMContentLoaded", init);
+function showAddItem(){addItemPanel.style.display="block"} function hideAddItem(){addItemPanel.style.display="none"}
+function nextId(){return "P-"+String(Math.max(0,...state.inventory.map(x=>parseInt(String(x.id).replace(/\D/g,""))||0))+1).padStart(4,"0")}
+function fileData(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)})}
+async function addItem(){if(!newTitle.value.trim())return alert("Title is required.");const photos=[];for(const f of [...newPhotos.files])photos.push(await fileData(f));const x={id:nextId(),title:newTitle.value.trim(),brand:newBrand.value.trim()||"Unknown",category:newCategory.value.trim()||"Other",status:newStatus.value,ask:Number(newAsk.value||0),itemCost:Number(newCost.value||0),daysListed:0,season:"Evergreen",marketplaces:newMarkets.value.split(",").map(s=>s.trim()).filter(Boolean),recommendedAction:newAction.value.trim()||"Review",recommendedRange:"",confidence:"Low",quantity:newQty.value||"1",notes:newNotes.value.trim(),photos,marketplaceIds:{},sourceRecords:[],selected:false};state.inventory.unshift(x);log("Created item",x);persist();renderAll();hideAddItem();}
+
+function openItem(id){const x=state.inventory.find(i=>i.id===id);if(!x)return;currentItemId=id;modalTitle.textContent=x.title;modalGallery.innerHTML=x.photos?.length?`<div class="gallery">${x.photos.map(p=>`<img src="${p}">`).join("")}</div>`:"";modalSummary.innerHTML=`<div class="summary-grid"><div class="summary-cell"><span>Pricing</span><b>${moneyFmt(x.ask)}</b></div><div class="summary-cell"><span>Item Cost</span><b>${moneyFmt(x.itemCost)}</b></div><div class="summary-cell"><span>Status</span><b>${x.status}</b></div><div class="summary-cell"><span>Quantity</span><b>${x.quantity}</b></div><div class="summary-cell"><span>Age</span><b>${x.daysListed} days</b></div><div class="summary-cell"><span>Gross Spread</span><b>${moneyFmt(Number(x.ask)-Number(x.itemCost))}</b></div></div><p><b>Marketplaces:</b> ${(x.marketplaces||[]).join(", ")||"—"}</p><p><b>Recommended:</b> ${x.recommendedAction||"—"}</p><p><b>Notes:</b> ${x.notes||"—"}</p>`;modalActions.style.display="flex";editPanel.style.display="none";itemModal.classList.add("open");}
+function closeItem(){itemModal.classList.remove("open");currentItemId=null}
+function editCurrentItem(){const x=state.inventory.find(i=>i.id===currentItemId);editTitle.value=x.title;editBrand.value=x.brand;editCategory.value=x.category;editPricing.value=x.ask;editCost.value=x.itemCost;editQty.value=x.quantity;editStatus.value=x.status;editSeason.value=x.season;editMarkets.value=(x.marketplaces||[]).join(", ");editIds.value=Object.entries(x.marketplaceIds||{}).map(([k,v])=>k+": "+v).join("\n");editAction.value=x.recommendedAction||"";editNotes.value=x.notes||"";editPhotos.value="";modalActions.style.display="none";editPanel.style.display="block";}
+function cancelEdit(){modalActions.style.display="flex";editPanel.style.display="none"}
+async function saveCurrentItem(){const x=state.inventory.find(i=>i.id===currentItemId);x.title=editTitle.value.trim()||x.title;x.brand=editBrand.value.trim()||"Unknown";x.category=editCategory.value.trim()||"Other";x.ask=Number(editPricing.value||0);x.itemCost=Number(editCost.value||0);x.quantity=editQty.value||"1";x.status=editStatus.value;x.season=editSeason.value.trim()||"Evergreen";x.marketplaces=editMarkets.value.split(",").map(s=>s.trim()).filter(Boolean);x.marketplaceIds={};editIds.value.split(/\r?\n/).forEach(l=>{const i=l.indexOf(":");if(i>0)x.marketplaceIds[l.slice(0,i).trim()]=l.slice(i+1).trim()});x.recommendedAction=editAction.value.trim()||"Review";x.notes=editNotes.value.trim();for(const f of [...editPhotos.files])x.photos.push(await fileData(f));log("Edited item",x);persist();renderAll();openItem(x.id);}
+function markCurrentSold(){const x=state.inventory.find(i=>i.id===currentItemId);if(confirm(`Mark "${x.title}" as sold?`)){x.status="Sold";log("Marked sold",x);persist();renderAll();openItem(x.id)}}
+
+async function addPhotosToInbox(e){for(const f of [...e.target.files])state.photoInbox.unshift({id:"IMG-"+Date.now()+Math.random(),imageData:await fileData(f),createdAt:new Date().toISOString(),status:"Unmatched",linkedItemId:""});persist();renderPhotoInbox();e.target.value=""}
+function renderPhotoInbox(){photoInboxGrid.innerHTML=state.photoInbox.length?state.photoInbox.map(p=>{const x=state.inventory.find(i=>i.id===p.linkedItemId);return `<div class="photo-card"><img src="${p.imageData}"><div class="small"><b>${x?x.title:"Unmatched item"}</b></div><div class="small muted">${p.status}</div><button class="btn secondary" onclick="matchPhoto('${p.id}')">Match</button><button class="btn good" onclick="createFromPhoto('${p.id}')">Create item</button><button class="btn secondary" onclick="removePhoto('${p.id}')">Remove</button></div>`}).join(""):'<div class="small muted">No photos waiting for review.</div>'}
+function matchPhoto(id){const p=state.photoInbox.find(x=>x.id===id);const choices=state.inventory.map((x,i)=>`${i+1}. ${x.title}`).join("\n");const a=parseInt(prompt("Choose existing item number:\n\n"+choices),10);if(!a||a<1||a>state.inventory.length)return;const x=state.inventory[a-1];x.photos.push(p.imageData);p.linkedItemId=x.id;p.status="Matched";log("Photo matched",x);persist();renderAll();}
+function createFromPhoto(id){const p=state.photoInbox.find(x=>x.id===id);const t=prompt("New item title");if(!t)return;const x={id:nextId(),title:t,brand:"Unknown",category:"Other",status:"Unlisted",ask:0,itemCost:0,daysListed:0,season:"Evergreen",marketplaces:[],recommendedAction:"Review",recommendedRange:"",confidence:"Low",quantity:"1",notes:"Created from Photo Inbox",photos:[p.imageData],marketplaceIds:{},sourceRecords:[],selected:false};state.inventory.unshift(x);p.linkedItemId=x.id;p.status="Created item";log("Created item from photo",x);persist();renderAll();}
+function removePhoto(id){state.photoInbox=state.photoInbox.filter(x=>x.id!==id);persist();renderPhotoInbox()}
+
+function norm(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function sim(a,b){const A=new Set(norm(a).split(/\s+/).filter(Boolean)),B=new Set(norm(b).split(/\s+/).filter(Boolean));if(!A.size||!B.size)return 0;let i=0;A.forEach(x=>B.has(x)&&i++);return i/Math.max(A.size,B.size)}
+function parseCSV(t,sep=","){const lines=t.split(/\r?\n/).filter(Boolean);if(lines.length<2)return[];const parse=l=>{let a=[],c="",q=false;for(let i=0;i<l.length;i++){let ch=l[i];if(ch==='"'&&l[i+1]==='"'){c+='"';i++}else if(ch==='"')q=!q;else if(ch===sep&&!q){a.push(c);c=""}else c+=ch}a.push(c);return a};const h=parse(lines[0]).map(x=>x.trim().toLowerCase());return lines.slice(1).map(l=>{const v=parse(l),o={};h.forEach((k,i)=>o[k]=v[i]??"");return o})}
+function val(o,...ks){for(const k of ks)for(const key of Object.keys(o))if(norm(key)===norm(k)&&String(o[key]??"").trim()!=="")return o[key];return""}
+function adapt(raw,source,i){const listingId=val(raw,"listing id","item id","id","sku","offer id"),img=val(raw,"photo url","image url","image","photo","thumbnail"),markets=val(raw,"marketplaces","marketplace","platform");return{id:val(raw,"product id","sku")||"IMP-"+Date.now()+"-"+i,title:val(raw,"title","item","name","listing title")||"Untitled",brand:val(raw,"brand")||"Unknown",category:val(raw,"category","department")||"Other",status:val(raw,"status","listing status")||"Active",ask:Number(val(raw,"pricing","ask","price","list price","listing price")||0),itemCost:Number(val(raw,"item cost","cost","cogs","purchase cost")||0),daysListed:Number(val(raw,"days listed","age","listing age")||0),season:val(raw,"season")||"Evergreen",marketplaces:[...new Set([...(String(markets||"").split(/[;,|]/).map(s=>s.trim()).filter(Boolean)),...(source!=="Generic"?[source]:[])])],recommendedAction:val(raw,"recommended action","action")||"Review",recommendedRange:val(raw,"recommended range")||"",confidence:val(raw,"confidence")||"Low",quantity:val(raw,"quantity","qty")||"1",notes:val(raw,"notes","note")||"",photos:img?[String(img)]:[],marketplaceIds:source!=="Generic"&&listingId?{[source]:String(listingId)}:{},sourceRecords:source!=="Generic"?[{source,listingId:String(listingId||""),listingUrl:String(val(raw,"listing url","url","permalink")||""),imageUrl:String(img||""),importedAt:new Date().toISOString()}]:[],selected:false}}
+async function importInventoryFile(e){const f=e.target.files[0];if(!f)return;try{let t=await f.text(),raw=[];if(f.name.toLowerCase().endsWith(".json")){const o=JSON.parse(t.replace(/^\ufeff/,""));raw=Array.isArray(o)?o:(o.inventory||o.items||o.listings||[])}else raw=parseCSV(t,f.name.toLowerCase().endsWith(".tsv")?"\t":",");const src=importSource.value||"Generic",items=raw.map((r,i)=>adapt(r,src,i)).filter(x=>x.title);buildRecon(items);importMsg.textContent=`Loaded ${items.length} ${src} item(s) for reconciliation.`}catch(err){importMsg.textContent="Import failed: "+err.message}e.target.value=""}
+function bestMatch(it){let best=null,score=0;state.inventory.forEach(x=>{let s=sim(it.title,x.title);if(norm(it.brand)===norm(x.brand))s+=.15;if(it.id&&x.id&&it.id===x.id)s=1;if(s>score){score=s;best=x}});return{best,score:Math.min(score,1)}}
+const fields=[["title","Title"],["brand","Brand"],["category","Category"],["ask","Pricing"],["itemCost","Item Cost"],["status","Status"],["quantity","Quantity"],["marketplaces","Marketplaces"],["season","Season"],["recommendedAction","Recommended Action"],["notes","Notes"],["photos","Photos"]];
+function cmp(v){return JSON.stringify(v??"")}
+function buildRecon(items){reconciliationPlan=items.map(item=>{const m=bestMatch(item);return{item,best:m.best,score:m.score,status:m.best&&m.score>=.78?"LIKELY MATCH":m.best&&m.score>=.5?"REVIEW MATCH":"NEW",action:m.best&&m.score>=.78?"MERGE":m.best&&m.score>=.5?"HOLD":"ADD",choices:{}}});renderRecon()}
+function diffs(p){if(!p.best)return[];return fields.filter(([k])=>cmp(p.best[k])!==cmp(p.item[k]))}
+function renderRecon(){reconcilePanel.style.display="block";const c={m:0,r:0,n:0};reconciliationPlan.forEach(p=>p.status==="LIKELY MATCH"?c.m++:p.status==="REVIEW MATCH"?c.r++:c.n++);reconcileSummary.innerHTML=`Likely matches: <b>${c.m}</b> • Needs review: <b>${c.r}</b> • New: <b>${c.n}</b>`;reconcileResults.innerHTML=reconciliationPlan.map((p,i)=>{const ds=diffs(p);return `<div class="recon-card"><div class="row" style="justify-content:space-between"><b>${p.item.title}</b><span class="pill">${p.status}</span></div>${p.best?`<div class="small muted">Existing item: ${p.best.title}</div>`:""}${ds.length?ds.map(([k,l])=>diffHTML(i,p,k,l)).join(""):'<div class="small muted" style="margin-top:7px">No differences detected.</div>'}<label>Record action</label><select onchange="reconciliationPlan[${i}].action=this.value"><option value="MERGE" ${p.action==="MERGE"?"selected":""}>Merge into existing item</option><option value="ADD" ${p.action==="ADD"?"selected":""}>Import as new item</option><option value="HOLD" ${p.action==="HOLD"?"selected":""}>Hold for review</option><option value="IGNORE">Ignore</option></select></div>`}).join("")}
+function disp(v){if(Array.isArray(v))return v.length&&String(v[0]).startsWith("data:image")?`${v.length} photo(s)`:v.join(", ");return String(v??"—")}
+function diffHTML(i,p,k,l){if(!p.choices[k])p.choices[k]="existing";let a=k==="photos"?(p.best[k]?.length?`${p.best[k].length} photo(s)`:"No photos"):disp(p.best[k]),b=k==="photos"?(p.item[k]?.length?`${p.item[k].length} photo(s)`:"No photos"):disp(p.item[k]);return `<div class="recon-diff"><b>${l}</b><div class="recon-grid"><div class="recon-value"><b>Existing</b>${a}</div><div class="recon-value"><b>Imported</b>${b}</div></div><div class="choice"><button class="${p.choices[k]==="existing"?"sel":""}" onclick="setChoice(${i},'${k}','existing')">Keep existing</button><button class="${p.choices[k]==="imported"?"sel":""}" onclick="setChoice(${i},'${k}','imported')">Use imported</button></div></div>`}
+function setChoice(i,k,v){reconciliationPlan[i].choices[k]=v;renderRecon()}
+function allReconAction(a){reconciliationPlan.forEach(p=>{if(a!=="MERGE"||p.best)p.action=a});renderRecon()} function allFields(v){reconciliationPlan.forEach(p=>diffs(p).forEach(([k])=>p.choices[k]=v));renderRecon()}
+function mergePlan(p){fields.forEach(([k])=>{if(diffs(p).some(d=>d[0]===k)&&p.choices[k]==="imported")p.best[k]=p.item[k]});p.item.marketplaces.forEach(m=>{if(!p.best.marketplaces.includes(m))p.best.marketplaces.push(m)});Object.assign(p.best.marketplaceIds,p.item.marketplaceIds);p.item.sourceRecords.forEach(r=>{if(!p.best.sourceRecords.some(x=>x.source===r.source&&x.listingId===r.listingId))p.best.sourceRecords.push(r)})}
+function applyReconciliation(){let m=0,a=0,h=0;reconciliationPlan.forEach(p=>{if(p.action==="MERGE"&&p.best){mergePlan(p);m++}else if(p.action==="ADD"){state.inventory.unshift(p.item);a++}else if(p.action==="HOLD")h++});log("Applied reconciliation",null,`${m} merged, ${a} added, ${h} held`);persist();renderAll();reconcilePanel.style.display="none";importMsg.textContent=`Reconciliation complete: ${m} merged, ${a} added, ${h} held.`}
+function cancelReconciliation(){reconciliationPlan=[];reconcilePanel.style.display="none";importMsg.textContent="Import cancelled. No changes made."}
+function exportInventory(){download("commerce_os_inventory.json",JSON.stringify(state.inventory,null,2))}
+function download(name,text){const b=new Blob(["\ufeff"+text],{type:"application/json;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click()}
+
+function analyzeSource(){const c=+sourceCost.value,s=+sourceSale.value,f=+sourceFees.value,m=+sourceMinutes.value,p=s-c-f,roi=c?p/c:0,pph=m?p/(m/60):0;sourceResult.innerHTML=`<div class="metric">${p>=state.settings.minimumExpectedProfit?"BUY":p>=state.settings.minimumExpectedProfit*.6?"TEST":"PASS"}</div><div>Expected contribution profit: <b>${moneyFmt(p)}</b></div><div>ROI: <b>${roi.toFixed(1)}×</b> • Profit/hour: <b>${moneyFmt(pph)}</b></div>`}
+function priceCalc(){const net=+targetNet.value,fee=+feePct.value/100,ship=+shipCost.value,off=+offerPct.value/100,ask=((net+ship)/(1-fee))/(1-off);priceResult.innerHTML=`Recommended listing price: <b>${moneyFmt(ask)}</b>`}
+function generateListing(){const t=(listingItem.value+" "+listingDetails.value).replace(/\s+/g," ").trim().slice(0,listingChannel.value==="eBay"?80:120);listingOutput.textContent=`${listingChannel.value.toUpperCase()} DRAFT\n\nTITLE\n${t}\n\nDESCRIPTION\n${listingItem.value}\nCondition: ${listingCondition.value}\n${listingDetails.value}\n\nMISSING INFO\n• Measurements\n• Materials\n• Flaws\n• Shipping weight`;}
+function growthPlan(){growthOutput.innerHTML=`<b>Objective:</b> ${growthObjective.value}<br><b>Product:</b> ${growthProduct.value||"selected product"}<br><br>1. Organic content: 3 hooks × faceless/product-first variants.<br>2. Pinterest: product Pin + search-led Pin + collection Pin.<br>3. Email: product story + CTA.<br>4. Paid media: approval-first retargeting test within spend cap.<br>5. Measure contribution profit and owned-audience growth.`}
+
+function addOutcome(){const r=+mRev.value,c=+mCost.value,min=+mMin.value,n=mNote.value||"Outcome";state.money.revenue+=r;state.money.profit+=r-c;state.money.minutes+=min;state.money.outcomes.unshift(`${n}: ${moneyFmt(r)} revenue, ${moneyFmt(r-c)} profit`);log("Recorded outcome",null,n);persist();renderMoney()}
+function renderMoney(){rev.textContent=state.money.revenue.toFixed(0);profit.textContent=state.money.profit.toFixed(0);hours.textContent=(state.money.minutes/60).toFixed(1);pph.textContent=state.money.minutes?(state.money.profit/(state.money.minutes/60)).toFixed(0):"0";outcomeLog.innerHTML=state.money.outcomes.slice(0,10).join("<br>")}
+function renderRules(){ruleMinProfit.value=state.settings.minimumExpectedProfit;ruleHighValue.value=state.settings.highValueThreshold;ruleMarkdown.value=state.settings.maxRoutineMarkdownPct;ruleAdCap.value=state.settings.adSpendDailyCap;ruleLikeness.checked=state.settings.likenessVoiceOptIn}
+function saveRules(){state.settings.minimumExpectedProfit=+ruleMinProfit.value;state.settings.highValueThreshold=+ruleHighValue.value;state.settings.maxRoutineMarkdownPct=+ruleMarkdown.value;state.settings.adSpendDailyCap=+ruleAdCap.value;state.settings.likenessVoiceOptIn=ruleLikeness.checked;log("Updated rules");persist();renderAll()}
+function renderActivity(){activityLog.innerHTML=state.activityLog.length?state.activityLog.slice(0,40).map(a=>`<div class="activity"><b>${a.action}</b><div class="small">${a.title||""}</div><div class="small muted">${new Date(a.at).toLocaleString()} ${a.details||""}</div></div>`).join(""):'<div class="small muted">No activity yet.</div>'}
+function clearActivity(){if(confirm("Clear activity history?")){state.activityLog=[];persist();renderActivity()}}
+function exportBackup(){download("commerce_os_backup.json",JSON.stringify({version:"1.0",state},null,2))}
+async function restoreBackupFile(e){try{const o=JSON.parse((await e.target.files[0].text()).replace(/^\ufeff/,""));if(!o.state)throw new Error("Invalid backup");state=o.state;persist();renderAll();alert("Backup restored.")}catch(err){alert(err.message)}e.target.value=""}
+
+document.addEventListener("DOMContentLoaded",init);
 </script>
-<div class="mobile-bottom-nav" id="mobileNav"></div>
-
-<div id="itemModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:1200;padding:10px;overflow:auto">
-  <div class="card" style="max-width:720px;margin:20px auto;background:#fff">
-    <div class="row" style="justify-content:space-between">
-      <div><div class="small muted">ITEM DETAILS</div><h3 id="modalTitle"></h3></div>
-      <button class="btn secondary" onclick="closeItemModal()">Close</button>
-    </div>
-    <div id="modalPhotoWrap"></div>
-    <div id="modalSummary"></div>
-    <div id="modalViewActions" class="row" style="margin-top:12px">
-      <button class="btn" onclick="startEditItem()">Edit item</button>
-      <button class="btn warn" onclick="markCurrentItemSold()">Mark as sold</button>
-    </div>
-    <div id="modalEditPanel" style="display:none;margin-top:14px">
-      <div class="grid g2">
-        <div><label>Title</label><input id="editTitle"/></div>
-        <div><label>Brand</label><input id="editBrand"/></div>
-        <div><label>Category</label><input id="editCategory"/></div>
-        <div><label>Pricing</label><input id="editPricing" type="number" step="0.01"/></div>
-        <div><label>Item Cost</label><input id="editCost" type="number" step="0.01"/></div>
-        <div><label>Quantity</label><input id="editQty"/></div>
-        <div><label>Status</label><select id="editStatus"><option>Active</option><option>Research / Hold</option><option>Unlisted</option><option>Sold</option></select></div>
-        <div><label>Season</label><input id="editSeason"/></div>
-      </div>
-      <label>Marketplaces</label><input id="editMarkets" placeholder="eBay, Poshmark"/>
-      <label>Marketplace IDs</label><textarea id="editMarketplaceIds" rows="3" placeholder="eBay: 12345&#10;Poshmark: abc123"></textarea>
-      <label>Recommended action</label><input id="editAction"/>
-      <label>Notes</label><textarea id="editNotes" rows="4"></textarea>
-      <label>Replace / add photo</label><input id="editPhoto" type="file" accept="image/*" capture="environment"/>
-      <div class="row" style="margin-top:10px">
-        <button class="btn good" onclick="saveItemEdits()">Save changes</button>
-        <button class="btn secondary" onclick="cancelItemEdit()">Cancel edit</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 </body></html>
