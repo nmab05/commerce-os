@@ -149,12 +149,27 @@ pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;colo
   #reconcilePanel .row .btn{width:100%}
 }
 </style>
+
+<style>
+.btn.import-btn{
+  background:#dbe3ee !important;
+  color:#1f2937 !important;
+  border:1px solid #b8c4d4 !important;
+}
+.recon-diff{border:1px solid #d8dee9;border-radius:10px;padding:10px;margin:8px 0;background:#fff}
+.recon-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.recon-value{border:1px solid #e2e8f0;border-radius:8px;padding:8px;background:#f8fafc;min-height:54px}
+.recon-value .lbl{display:block;font-size:10px;color:#667085;text-transform:uppercase;margin-bottom:3px}
+.recon-choice{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.recon-choice button{border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#344054;padding:8px;font-size:12px}
+.recon-choice button.selected{background:#e0ecff;color:#1d4ed8;border-color:#7aa2f7;font-weight:700}
+</style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <div class="brand">Commerce OS</div>
-    <div class="sub">Prototype v0.5 • reconciliation-first • configurable by design</div>
+    <div class="sub">Prototype v0.6 • field-level reconciliation • configurable by design</div>
     <div class="nav" id="nav"></div>
     <div class="card" style="margin-top:18px">
       <div class="small muted">Prototype rule</div>
@@ -210,9 +225,9 @@ pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;colo
 
     <section id="Inventory" class="page">
       <div class="card">
-        <div class="row" style="justify-content:space-between"><h3>Canonical inventory</h3>
+        <div class="row" style="justify-content:space-between"><h3>Existing inventory</h3>
 <div class="row">
-<label for="inventoryImport" class="btn secondary" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin:0">Import</label>
+<label for="inventoryImport" class="btn import-btn" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin:0">Import</label>
 <button class="btn secondary" onclick="exportInventory()">Export</button>
 <button class="btn good" onclick="showAddItem()">Add item</button>
 </div></div>
@@ -220,7 +235,7 @@ pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;colo
 <div id="importMsg" class="small muted" style="margin:8px 0">Import accepts JSON or CSV.</div>
 <div id="reconcilePanel" class="card" style="display:none;margin:12px 0;background:#fbfdff">
   <h3>Reconcile imported inventory</h3>
-  <div class="muted small">Nothing changes until you approve a reconciliation action.</div>
+  <div class="muted small">Nothing changes until you approve a reconciliation action. When fields differ, choose which value to keep.</div>
   <div id="reconcileSummary" class="small" style="margin:10px 0"></div>
   <div id="reconcileResults"></div>
   <div class="row" style="margin-top:12px">
@@ -357,7 +372,7 @@ pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;colo
       <div class="spacer"></div>
 <div class="card">
   <h3>Inventory reconciliation</h3>
-  <div class="small muted">Canonical inventory can be built from photos, manual additions, selling-app imports, and uploaded inventory lists. Imports are reconciled first; nothing overwrites inventory automatically. Future marketplace connectors can also bring listing photos and platform IDs into the same matching engine.</div>
+  <div class="small muted">Existing inventory can be built from photos, manual additions, selling-app imports, and uploaded inventory lists. Imports are reconciled first; nothing overwrites existing inventory automatically. Field-level differences require an explicit keep/use choice. Future marketplace connectors can also bring listing photos and platform IDs into the same matching engine.</div>
 </div>
 <div class="spacer"></div>
 <div class="card">
@@ -611,6 +626,61 @@ function buildReconciliation(items){
   });
   renderReconciliation();
 }
+
+function displayVal(v){
+  if(Array.isArray(v)) return v.join(", ");
+  if(v===undefined || v===null || v==="") return "—";
+  return String(v);
+}
+function comparableVal(v){
+  if(Array.isArray(v)) return v.map(x=>normText(x)).sort().join("|");
+  if(typeof v==="number") return Number(v);
+  return normText(v);
+}
+const RECON_FIELDS=[
+  ["title","Title"],["brand","Brand"],["category","Category"],["ask","Pricing"],
+  ["itemCost","Item Cost"],["status","Status"],["quantity","Quantity"],
+  ["marketplaces","Marketplaces"],["season","Season"],["recommendedAction","Recommended Action"],
+  ["imageData","Photo"]
+];
+function getFieldDiffs(planItem){
+  if(!planItem.best) return [];
+  return RECON_FIELDS.filter(([key])=>{
+    const a=planItem.best[key], b=planItem.item[key];
+    if(key==="imageData") return Boolean(a)!==Boolean(b) || (a && b && a!==b);
+    return comparableVal(a)!==comparableVal(b);
+  });
+}
+function ensureFieldChoices(planItem){
+  if(!planItem.fieldChoices) planItem.fieldChoices={};
+  getFieldDiffs(planItem).forEach(([key])=>{
+    if(!planItem.fieldChoices[key]) planItem.fieldChoices[key]="existing";
+  });
+}
+function setFieldChoice(planIndex,key,choice){
+  const p=reconciliationPlan[planIndex];
+  if(!p.fieldChoices) p.fieldChoices={};
+  p.fieldChoices[key]=choice;
+  renderReconciliation();
+}
+function fieldDiffHtml(planIndex,planItem,key,label){
+  const existing=planItem.best?planItem.best[key]:undefined;
+  const imported=planItem.item[key];
+  const choice=(planItem.fieldChoices&&planItem.fieldChoices[key])||"existing";
+  const existingDisplay=key==="imageData"?(existing?"Photo attached":"No photo"):displayVal(existing);
+  const importedDisplay=key==="imageData"?(imported?"Photo attached":"No photo"):displayVal(imported);
+  return `<div class="recon-diff">
+    <div class="small" style="font-weight:700;margin-bottom:6px">${label}</div>
+    <div class="recon-grid">
+      <div class="recon-value"><span class="lbl">Existing</span>${existingDisplay}</div>
+      <div class="recon-value"><span class="lbl">Imported</span>${importedDisplay}</div>
+    </div>
+    <div class="recon-choice">
+      <button class="${choice==='existing'?'selected':''}" onclick="setFieldChoice(${planIndex},'${key}','existing')">Keep existing</button>
+      <button class="${choice==='imported'?'selected':''}" onclick="setFieldChoice(${planIndex},'${key}','imported')">Use imported</button>
+    </div>
+  </div>`;
+}
 function renderReconciliation(){
   const p=document.getElementById('reconcilePanel'); p.style.display='block';
   const r=document.getElementById('reconcileResults');
@@ -619,24 +689,19 @@ function renderReconciliation(){
     if(x.status==='LIKELY MATCH')counts.match++;
     else if(x.status==='REVIEW MATCH')counts.review++;
     else counts.new++;
+    ensureFieldChoices(x);
   });
   document.getElementById('reconcileSummary').innerHTML=`Likely matches: <b>${counts.match}</b> • Needs review: <b>${counts.review}</b> • New: <b>${counts.new}</b>`;
   r.innerHTML=reconciliationPlan.map((x,i)=>{
-    const cand=x.best?`<div class="small muted">Candidate: ${x.best.title}</div>`:'';
-    const diffs=[];
-    if(x.best){
-      if(Number(x.item.ask||0)!==Number(x.best.ask||0))diffs.push(`Pricing ${x.best.ask} → ${x.item.ask}`);
-      if(Number(x.item.itemCost||0)!==Number(x.best.itemCost||0))diffs.push(`Item Cost ${x.best.itemCost||0} → ${x.item.itemCost||0}`);
-      if(String(x.item.status)!==String(x.best.status))diffs.push(`Status ${x.best.status} → ${x.item.status}`);
-      if(String(x.item.quantity)!==String(x.best.quantity))diffs.push(`Qty ${x.best.quantity} → ${x.item.quantity}`);
-    }
+    const existing=x.best?`<div class="small muted">Existing item: ${x.best.title}</div>`:'';
+    const diffs=getFieldDiffs(x);
+    const diffHtml=diffs.length?diffs.map(([key,label])=>fieldDiffHtml(i,x,key,label)).join(''):`<div class="small muted" style="margin-top:8px">No differences detected.</div>`;
     return `<div class="card" style="margin:8px 0;background:#fff">
       <div class="row" style="justify-content:space-between"><b>${x.item.title}</b><span class="pill">${x.status}</span></div>
-      ${cand}
-      <div class="small" style="margin-top:6px">${diffs.length?diffs.join(' • '):'No major field differences detected.'}</div>
-      <label>Action</label>
+      ${existing}${diffHtml}
+      <label>Record action</label>
       <select onchange="setReconAction(${i},this.value)">
-        <option value="MERGE" ${x.action==='MERGE'?'selected':''}>Merge into match</option>
+        <option value="MERGE" ${x.action==='MERGE'?'selected':''}>Merge into existing item</option>
         <option value="ADD" ${x.action==='ADD'?'selected':''}>Import as new item</option>
         <option value="HOLD" ${x.action==='HOLD'?'selected':''}>Hold for manual review</option>
         <option value="IGNORE" ${x.action==='IGNORE'?'selected':''}>Ignore</option>
@@ -645,19 +710,28 @@ function renderReconciliation(){
   }).join('');
 }
 function setReconAction(i,v){reconciliationPlan[i].action=v;}
-function mergeItem(target,src){
-  const fields=['title','brand','category','status','ask','itemCost','daysListed','season','recommendedAction','recommendedRange','confidence','quantity','imageData'];
-  fields.forEach(k=>{
-    if(src[k]!==undefined && src[k]!==null && src[k]!=='' && !(k==='itemCost'&&Number(src[k])===0)) target[k]=src[k];
+
+function mergeItemWithChoices(planItem){
+  const target=planItem.best, src=planItem.item;
+  if(!target) return;
+  const diffs=getFieldDiffs(planItem);
+  const diffKeys=new Set(diffs.map(x=>x[0]));
+  RECON_FIELDS.forEach(([key])=>{
+    if(diffKeys.has(key)){
+      const choice=(planItem.fieldChoices&&planItem.fieldChoices[key])||"existing";
+      if(choice==="imported"){
+        if(key==="marketplaces") target.marketplaces=[...(src.marketplaces||[])];
+        else target[key]=src[key];
+      }
+    } else if(key==="marketplaces" && src.marketplaces && src.marketplaces.length){
+      target.marketplaces=[...new Set([...(target.marketplaces||[]),...src.marketplaces])];
+    }
   });
-  if(src.marketplaces&&src.marketplaces.length){
-    target.marketplaces=[...new Set([...(target.marketplaces||[]),...src.marketplaces])];
-  }
 }
 function applyReconciliation(){
   let merged=0,added=0,held=0;
   reconciliationPlan.forEach(x=>{
-    if(x.action==='MERGE' && x.best){mergeItem(x.best,x.item);merged++;}
+    if(x.action==='MERGE' && x.best){mergeItemWithChoices(x);merged++;}
     else if(x.action==='ADD'){state.inventory.unshift(x.item);added++;}
     else if(x.action==='HOLD'){held++;}
   });
