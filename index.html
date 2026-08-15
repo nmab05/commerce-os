@@ -62,12 +62,26 @@ body{overflow-x:hidden}
 }
 </style>
 
+
+<style>
+@media(max-width:700px){
+  .mobile-bottom-nav{
+    display:flex !important;
+    visibility:visible !important;
+    opacity:1 !important;
+    min-height:58px;
+    bottom:0;
+  }
+  body{padding-bottom:90px !important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <div class="brand">Commerce OS</div>
-    <div class="sub">Prototype v0.2 • mobile-first • configurable by design</div>
+    <div class="sub">Prototype v0.2.1 • mobile-first • configurable by design</div>
     <div class="nav" id="nav"></div>
     <div class="card" style="margin-top:18px">
       <div class="small muted">Prototype rule</div>
@@ -371,7 +385,7 @@ function renderChannels(){
 function exportInventory(){
   const blob=new Blob([JSON.stringify(state.inventory,null,2)],{type:"application/json"}); const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="commerce_os_inventory.json";a.click();
 }
-init();
+document.addEventListener("DOMContentLoaded", init);
 </script>
 <div class="mobile-bottom-nav" id="mobileNav"></div>
 </body></html>
