@@ -177,12 +177,23 @@ pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;colo
   #importSource{width:100% !important}
 }
 </style>
+
+<style>
+.photo-inbox-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.photo-inbox-card{border:1px solid #d8dee9;border-radius:12px;padding:8px;background:#fff}
+.photo-inbox-card img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:9px}
+.photo-inbox-card .small{margin-top:6px}
+.photo-inbox-card .btn{width:100%;margin-top:6px;padding:7px;font-size:11px}
+@media(max-width:700px){
+  .photo-inbox-grid{grid-template-columns:1fr 1fr}
+}
+</style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <div class="brand">Commerce OS</div>
-    <div class="sub">Prototype v0.8 • marketplace import ready • configurable by design</div>
+    <div class="sub">Prototype v0.9 • photo inbox • configurable by design</div>
     <div class="nav" id="nav"></div>
     <div class="card" style="margin-top:18px">
       <div class="small muted">Prototype rule</div>
@@ -216,6 +227,17 @@ pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;colo
     </section>
 
     <section id="Source" class="page">
+      <div class="card" style="margin-bottom:14px">
+        <div class="row" style="justify-content:space-between">
+          <div>
+            <h3 style="margin-bottom:3px">Photo Inbox</h3>
+            <div class="muted small">Capture items first; reconcile or create records afterward.</div>
+          </div>
+          <label for="photoInboxInput" class="btn good" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin:0">Add photos</label>
+          <input id="photoInboxInput" type="file" accept="image/*" capture="environment" multiple style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" onchange="addPhotosToInbox(event)"/>
+        </div>
+        <div id="photoInboxGrid" class="photo-inbox-grid"></div>
+      </div>
       <div class="grid g2">
         <div class="card">
           <h3>Camera sourcing assistant</h3>
@@ -436,7 +458,7 @@ function init(){
   } catch(e) {
     // iOS file preview may restrict storage; app still works with embedded defaults.
   }
-  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(x.notes===undefined)x.notes='';}); buildNav(); buildMobileNav(); renderAll();
+  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(x.notes===undefined)x.notes='';}); if(!state.photoInbox)state.photoInbox=[]; buildNav(); buildMobileNav(); renderAll();
 }
 function persist(){try{localStorage.setItem('commerceState',JSON.stringify(state));}catch(e){}}
 function buildNav(){
