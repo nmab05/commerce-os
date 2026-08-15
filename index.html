@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Commerce OS Prototype</title>
+<style>
+:root{
+  --bg:#0f172a;--panel:#111827;--panel2:#1f2937;--muted:#94a3b8;--text:#f8fafc;
+  --accent:#38bdf8;--good:#22c55e;--warn:#f59e0b;--bad:#ef4444;--line:#334155;
+}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:#0b1220;color:var(--text)}
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.sidebar{background:#0a1020;border-right:1px solid var(--line);padding:20px;position:sticky;top:0;height:100vh}
+.brand{font-weight:800;font-size:20px;margin-bottom:18px}.sub{color:var(--muted);font-size:12px;margin-bottom:20px}
+.nav button{width:100%;text-align:left;background:transparent;border:0;color:#cbd5e1;padding:10px 12px;border-radius:10px;margin:2px 0;cursor:pointer;font-size:14px}
+.nav button.active,.nav button:hover{background:#172033;color:#fff}
+.main{padding:24px;max-width:1500px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+h1{font-size:26px;margin:0}.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#172033;color:#bae6fd;font-size:12px}
+.grid{display:grid;gap:14px}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.card{background:linear-gradient(180deg,#121b2d,#0f172a);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h3{margin:0 0 10px;font-size:16px}.metric{font-size:28px;font-weight:800}.muted{color:var(--muted)}
+.btn{background:#0ea5e9;border:0;color:white;padding:9px 12px;border-radius:9px;cursor:pointer;font-weight:700}.btn.secondary{background:#24324a}.btn.good{background:#16a34a}.btn.warn{background:#d97706}
+input,select,textarea{width:100%;background:#0b1220;border:1px solid #3b4a62;color:#fff;padding:9px 10px;border-radius:8px}
+label{font-size:12px;color:#cbd5e1;display:block;margin:9px 0 5px}
+table{width:100%;border-collapse:collapse;font-size:13px} th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top} th{color:#bae6fd}
+.pill{padding:3px 7px;border-radius:999px;font-size:11px;background:#22314a;display:inline-block}.pill.good{background:#143b27;color:#bbf7d0}.pill.warn{background:#4a3312;color:#fde68a}
+.page{display:none}.page.active{display:block}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.spacer{height:8px}
+.action{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)} .action:last-child{border:0}
+.small{font-size:12px}.right{text-align:right}.preview{max-width:240px;max-height:180px;border-radius:12px;border:1px solid var(--line);display:none}
+code{background:#111827;padding:2px 5px;border-radius:5px}
+@media(max-width:1000px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:relative}.g4,.g3,.g2{grid-template-columns:1fr}.nav{display:flex;overflow:auto}.nav button{min-width:max-content}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">Commerce OS</div>
+    <div class="sub">Prototype v0.1.1 • iPhone-compatible • configurable by design</div>
+    <div class="nav" id="nav"></div>
+    <div class="card" style="margin-top:18px">
+      <div class="small muted">Prototype rule</div>
+      <div style="font-weight:700;margin-top:4px">Build → Measure → Learn → Update</div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <div><h1 id="pageTitle">Today</h1><div class="muted small">AI-assisted commerce operating system prototype</div></div>
+      <div class="row"><span class="badge">No Double Entry</span><span class="badge">Approval-first</span></div>
+    </div>
+
+    <section id="Today" class="page active">
+      <div class="grid g4">
+        <div class="card"><div class="muted small">Priority actions</div><div class="metric" id="mActions">0</div></div>
+        <div class="card"><div class="muted small">Active inventory</div><div class="metric" id="mInventory">0</div></div>
+        <div class="card"><div class="muted small">High-value items</div><div class="metric" id="mHigh">0</div></div>
+        <div class="card"><div class="muted small">Connected channels</div><div class="metric" id="mChannels">0</div></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="grid g2">
+        <div class="card"><h3>What should I do today?</h3><div id="todayQueue"></div></div>
+        <div class="card">
+          <h3>Time-based planner</h3>
+          <label>How much time do you have?</label>
+          <select id="timeBudget"><option value="30">30 minutes</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="300">5 hours</option></select>
+          <button class="btn" onclick="buildTimePlan()">Build my plan</button>
+          <div id="timePlan" class="small muted" style="margin-top:12px"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="Source" class="page">
+      <div class="grid g2">
+        <div class="card">
+          <h3>Camera sourcing assistant</h3>
+          <div class="muted small">Browser prototype: previews the photo and runs economics from your inputs. Live visual identification will plug into the AI connector later.</div>
+          <label>Item photo</label><input type="file" accept="image/*" capture="environment" id="sourcePhoto"/>
+          <img id="sourcePreview" class="preview"/>
+          <label>What do you think it is? (optional)</label><input id="sourceTitle" placeholder="e.g., Farm Rio maxi dress"/>
+          <label>Store price</label><input type="number" id="sourceCost" value="20"/>
+          <label>Expected sale price</label><input type="number" id="sourceSale" value="75"/>
+          <label>Estimated fees + shipping</label><input type="number" id="sourceFees" value="20"/>
+          <label>Estimated owner minutes</label><input type="number" id="sourceMinutes" value="15"/>
+          <button class="btn good" onclick="analyzeSource()">Analyze BUY / TEST / PASS</button>
+        </div>
+        <div class="card"><h3>Sourcing decision</h3><div id="sourceResult" class="muted">Add an item to analyze.</div></div>
+      </div>
+    </section>
+
+    <section id="Inventory" class="page">
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h3>Canonical inventory</h3><button class="btn secondary" onclick="exportInventory()">Export JSON</button></div>
+        <table><thead><tr><th>Item</th><th>Status</th><th>Ask</th><th>Age</th><th>Channels</th><th>Recommended action</th></tr></thead><tbody id="inventoryBody"></tbody></table>
+      </div>
+    </section>
+
+    <section id="Sell" class="page">
+      <div class="grid g2">
+        <div class="card"><h3>Cash conversion queue</h3><div id="sellQueue"></div></div>
+        <div class="card">
+          <h3>Platform-specific price calculator</h3>
+          <label>Target net proceeds</label><input id="targetNet" type="number" value="120"/>
+          <label>Platform fee %</label><input id="feePct" type="number" value="20"/>
+          <label>Seller-funded shipping</label><input id="shipCost" type="number" value="0"/>
+          <label>Expected offer discount %</label><input id="offerPct" type="number" value="15"/>
+          <button class="btn" onclick="priceCalc()">Calculate recommended ask</button>
+          <div id="priceResult" style="margin-top:12px"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="Create" class="page">
+      <div class="grid g2">
+        <div class="card">
+          <h3>Listing studio</h3>
+          <label>Product / item</label><input id="listingItem" placeholder="Farm Rio floral maxi dress size XS"/>
+          <label>Condition</label><input id="listingCondition" placeholder="NWT / excellent / vintage good"/>
+          <label>Key details</label><textarea id="listingDetails" rows="5" placeholder="linen blend, blue print, size XS, measurements..."></textarea>
+          <label>Target marketplace</label><select id="listingChannel"><option>eBay</option><option>Poshmark</option><option>Mercari</option><option>Etsy</option><option>Depop</option><option>Vinted</option><option>Whatnot</option><option>Shopify</option></select>
+          <button class="btn" onclick="generateListing()">Generate draft</button>
+        </div>
+        <div class="card"><h3>Draft output</h3><pre id="listingOutput" style="white-space:pre-wrap;color:#e2e8f0"></pre></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="grid g2">
+        <div class="card">
+          <h3>Social content studio</h3>
+          <label>Objective</label><select id="contentObjective"><option>Sell product</option><option>Grow followers</option><option>Grow email list</option><option>Launch collection</option></select>
+          <label>Mode</label><select id="contentMode"><option>Faceless</option><option>On camera</option><option>Product only</option><option>My likeness (opt-in required)</option><option>My voice (opt-in required)</option></select>
+          <label>Product</label><input id="contentProduct" placeholder="Vintage sequin bag"/>
+          <button class="btn" onclick="generateContent()">Create content plan</button>
+        </div>
+        <div class="card"><h3>Content plan</h3><div id="contentOutput" class="small muted"></div></div>
+      </div>
+    </section>
+
+    <section id="Grow" class="page">
+      <div class="grid g3">
+        <div class="card"><h3>Growth brief</h3><div class="small">Focus: contribution profit, qualified audience growth, email ownership, and profitable retargeting.</div></div>
+        <div class="card"><h3>Paid media guardrail</h3><div class="metric">$<span id="capDisplay">25</span></div><div class="muted small">Daily test cap</div></div>
+        <div class="card"><h3>Audience objective</h3><div class="metric">Owned</div><div class="muted small">Followers + email + repeat buyers</div></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="card">
+        <h3>Media buyer experiment builder</h3>
+        <div class="grid g3">
+          <div><label>Channel</label><select id="adChannel"><option>Meta Ads</option><option>TikTok Ads</option><option>Pinterest Ads</option></select></div>
+          <div><label>Test budget</label><input type="number" id="adBudget" value="50"/></div>
+          <div><label>Expected contribution margin %</label><input type="number" id="adMargin" value="50"/></div>
+        </div>
+        <label>Product / collection</label><input id="adProduct" placeholder="Halloween collection"/>
+        <button class="btn warn" onclick="buildAdPlan()">Build approval plan</button>
+        <div id="adPlan" class="small" style="margin-top:12px"></div>
+      </div>
+    </section>
+
+    <section id="Money" class="page">
+      <div class="grid g4">
+        <div class="card"><div class="muted small">Revenue</div><div class="metric">$<span id="rev">0</span></div></div>
+        <div class="card"><div class="muted small">Contribution profit</div><div class="metric">$<span id="profit">0</span></div></div>
+        <div class="card"><div class="muted small">Owner hours</div><div class="metric"><span id="hours">0</span></div></div>
+        <div class="card"><div class="muted small">Profit / owner hour</div><div class="metric">$<span id="pph">0</span></div></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="card">
+        <h3>Add outcome</h3>
+        <div class="grid g4">
+          <div><label>Revenue</label><input id="mRev" type="number" value="100"/></div>
+          <div><label>COGS + fees + shipping</label><input id="mCost" type="number" value="45"/></div>
+          <div><label>Owner minutes</label><input id="mMin" type="number" value="15"/></div>
+          <div><label>Note</label><input id="mNote" placeholder="Sold Farm Rio dress"/></div>
+        </div>
+        <button class="btn good" onclick="addOutcome()">Record outcome</button>
+        <div id="outcomeLog" class="small muted" style="margin-top:12px"></div>
+      </div>
+    </section>
+
+    <section id="Lab" class="page">
+      <div class="grid g2">
+        <div class="card">
+          <h3>Configurable rules</h3>
+          <label>Minimum expected sourcing profit</label><input id="ruleMinProfit" type="number"/>
+          <label>High-value threshold</label><input id="ruleHighValue" type="number"/>
+          <label>Max routine markdown %</label><input id="ruleMarkdown" type="number"/>
+          <label>Daily ad test cap</label><input id="ruleAdCap" type="number"/>
+          <label><input id="ruleLikeness" type="checkbox" style="width:auto"/> Enable likeness / voice features</label>
+          <button class="btn" onclick="saveRules()">Save rules</button>
+          <div id="ruleMsg" class="small muted" style="margin-top:10px"></div>
+        </div>
+        <div class="card">
+          <h3>Experiment & blind-spot log</h3>
+          <label>What did we learn / what is missing?</label><textarea id="blindspot" rows="5" placeholder="Example: Poshmark offer behavior differs by category..."></textarea>
+          <button class="btn secondary" onclick="addBlindspot()">Add to Lab</button>
+          <div id="blindspotLog" class="small" style="margin-top:12px"></div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="card"><h3>Channel registry</h3><table><thead><tr><th>Channel</th><th>Type</th><th>Enabled</th><th>Connection</th></tr></thead><tbody id="channelBody"></tbody></table></div>
+    </section>
+  </main>
+</div>
+<script>
+const pages=["Today","Source","Inventory","Sell","Create","Grow","Money","Lab"];
+let state=null;
+let money={revenue:0,profit:0,minutes:0,outcomes:[]};
+let blindspots=[];
+
+const EMBEDDED_SEED = {"settings":{"businessGoal":"Maximize after-tax cash while building a scalable 5\u201310 hour/week business","cashWeight":40,"profitWeight":30,"ownerTimeWeight":20,"learningWeight":10,"minimumExpectedProfit":40,"highValueThreshold":175,"maxRoutineMarkdownPct":20,"seasonalLeadMonths":3,"taxReservePct":30,"weeklyOwnerHours":10,"allowPlatformSpecificPricing":true,"noDoubleEntry":true,"likenessVoiceOptIn":false,"adSpendDailyCap":25,"agentAuthority":{"inventory":1,"listing":2,"pricing":1,"sourcing":1,"content":2,"mediaBuyer":1}},"inventory":[{"id":"P3-001","title":"Loungefly Disney Minnie Mouse Pink Ghost Glow-in-the-Dark Mini Backpack","category":"Bags & Accessories","brand":"Loungefly","status":"Active","ask":225,"daysListed":730,"season":"Halloween","marketplaces":["eBay","Poshmark"],"recommendedAction":"Seasonal reprice + listing refresh","recommendedRange":"$89\u2013$119","confidence":"Medium","quantity":"1+"},{"id":"P3-002","title":"Farm Rio x Alberto Pitta Blue Print Knot Linen Blend Midi Dress \u2014 Size S","category":"Women's Clothing","brand":"Farm Rio","status":"Active","ask":298,"daysListed":780,"season":"Evergreen","marketplaces":["eBay","Poshmark"],"recommendedAction":"Validate market + optimize title/category","recommendedRange":"$179\u2013$225","confidence":"Medium","quantity":1},{"id":"P3-004","title":"Lilly Pulitzer NWT Aston Maxi Set \u2014 Amalfi Blue \u2014 Size M","category":"Women's Clothing","brand":"Lilly Pulitzer","status":"Active","ask":298,"daysListed":754,"season":"Resort/Spring-Summer","marketplaces":["eBay","Poshmark"],"recommendedAction":"Validate comps + high-value optimization","recommendedRange":"$149\u2013$189","confidence":"High","quantity":1},{"id":"P3-005","title":"Farm Rio Tropical Tapestry Long-Sleeve Minidress \u2014 Size S","category":"Women's Clothing","brand":"Farm Rio","status":"Active","ask":198,"daysListed":775,"season":"Evergreen","marketplaces":["eBay","Poshmark"],"recommendedAction":"Reprice first + searchable title","recommendedRange":"$139\u2013$159","confidence":"High","quantity":1},{"id":"P3-012","title":"Vintage Makeup Compact","category":"Vintage","brand":"Unknown","status":"Research / Hold","ask":335,"daysListed":855,"season":"Evergreen","marketplaces":["eBay","Poshmark","Mercari"],"recommendedAction":"Identify precisely + validate sold comps","recommendedRange":"Hold pending research","confidence":"Low","quantity":1}],"channels":[{"name":"eBay","type":"marketplace","enabled":true,"connection":"prototype"},{"name":"Poshmark","type":"marketplace","enabled":true,"connection":"prototype"},{"name":"Mercari","type":"marketplace","enabled":true,"connection":"prototype"},{"name":"Vinted","type":"marketplace","enabled":false,"connection":"not connected"},{"name":"Etsy","type":"marketplace","enabled":false,"connection":"not connected"},{"name":"Depop","type":"marketplace","enabled":false,"connection":"not connected"},{"name":"Whatnot","type":"live commerce","enabled":false,"connection":"not connected"},{"name":"Shopify","type":"owned store","enabled":false,"connection":"not connected"},{"name":"Pinterest","type":"growth/discovery","enabled":false,"connection":"not connected"},{"name":"Meta Ads","type":"paid media","enabled":false,"connection":"not connected"},{"name":"TikTok Ads","type":"paid media","enabled":false,"connection":"not connected"},{"name":"Canva","type":"design","enabled":false,"connection":"not connected"},{"name":"Printify","type":"POD","enabled":false,"connection":"not connected"},{"name":"Printful","type":"POD","enabled":false,"connection":"not connected"},{"name":"Gelato","type":"POD","enabled":false,"connection":"not connected"}]};
+function init(){
+  state = JSON.parse(JSON.stringify(EMBEDDED_SEED));
+  try {
+    const saved=localStorage.getItem('commerceState'); if(saved) state=JSON.parse(saved);
+    const sm=localStorage.getItem('commerceMoney'); if(sm) money=JSON.parse(sm);
+    const sb=localStorage.getItem('commerceBlindspots'); if(sb) blindspots=JSON.parse(sb);
+  } catch(e) {
+    // iOS file preview may restrict storage; app still works with embedded defaults.
+  }
+  buildNav(); renderAll();
+}
+function persist(){try{localStorage.setItem('commerceState',JSON.stringify(state));}catch(e){}}
+function buildNav(){
+  const n=document.getElementById('nav'); n.innerHTML="";
+  pages.forEach((p,i)=>{const b=document.createElement('button');b.textContent=p;b.className=i===0?'active':'';b.onclick=()=>showPage(p,b);n.appendChild(b);});
+}
+function showPage(p,b){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById(p).classList.add('active');
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.getElementById('pageTitle').textContent=p;
+}
+function actionScore(x){
+  let v=Math.max(0,Math.min(100,(x.ask/3)+(x.daysListed/20)));
+  if(x.season==="Halloween") v+=18;
+  if(x.status.includes("Research")) v-=15;
+  return Math.round(v);
+}
+function renderAll(){
+  document.getElementById('mInventory').textContent=state.inventory.length;
+  document.getElementById('mHigh').textContent=state.inventory.filter(x=>x.ask>=state.settings.highValueThreshold).length;
+  document.getElementById('mChannels').textContent=state.channels.filter(x=>x.enabled).length;
+  document.getElementById('capDisplay').textContent=state.settings.adSpendDailyCap;
+  renderInventory(); renderQueues(); renderChannels(); renderRules(); renderMoney(); renderBlindspots();
+}
+function renderInventory(){
+  const b=document.getElementById('inventoryBody'); b.innerHTML="";
+  state.inventory.forEach(x=>{
+    b.innerHTML+=`<tr><td><b>${x.title}</b><div class="muted small">${x.id} • ${x.brand}</div></td><td>${x.status}</td><td>$${x.ask}</td><td>${x.daysListed}d</td><td>${x.marketplaces.join(", ")}</td><td>${x.recommendedAction}<div class="muted small">${x.recommendedRange}</div></td></tr>`;
+  });
+}
+function renderQueues(){
+  const list=[...state.inventory].sort((a,b)=>actionScore(b)-actionScore(a));
+  document.getElementById('mActions').textContent=list.length;
+  const html=list.map((x,i)=>`<div class="action"><div><b>${i+1}. ${x.title}</b><div class="muted small">${x.recommendedAction} • score ${actionScore(x)}</div></div><div class="right"><span class="pill ${x.confidence==='High'?'good':'warn'}">${x.confidence}</span><div class="small">${x.recommendedRange}</div></div></div>`).join("");
+  document.getElementById('todayQueue').innerHTML=html;
+  document.getElementById('sellQueue').innerHTML=html;
+}
+function buildTimePlan(){
+  const min=+document.getElementById('timeBudget').value;
+  const per=20; const n=Math.max(1,Math.floor(min/per));
+  const list=[...state.inventory].sort((a,b)=>actionScore(b)-actionScore(a)).slice(0,n);
+  document.getElementById('timePlan').innerHTML=`Focus on ${n} item(s):<br>`+list.map(x=>"• "+x.title+" — "+x.recommendedAction).join("<br>");
+}
+document.getElementById('sourcePhoto').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return; const img=document.getElementById('sourcePreview'); img.src=URL.createObjectURL(f); img.style.display='block';
+});
+function analyzeSource(){
+  const cost=+sourceCost.value,sale=+sourceSale.value,fees=+sourceFees.value,mins=+sourceMinutes.value;
+  const profit=sale-cost-fees, roi=cost?profit/cost:0, pph=mins?profit/(mins/60):0;
+  let decision=profit>=state.settings.minimumExpectedProfit?"BUY":profit>=state.settings.minimumExpectedProfit*.6?"TEST":"PASS";
+  sourceResult.innerHTML=`<div class="metric">${decision}</div><p>Expected contribution profit: <b>$${profit.toFixed(2)}</b></p><p>ROI: <b>${roi.toFixed(1)}×</b> • Profit/owner-hour: <b>$${pph.toFixed(0)}</b></p><p class="muted">Prototype note: live visual identification and current comps will plug into the AI/web connector; this browser build currently evaluates the economics you provide.</p>`;
+}
+function priceCalc(){
+  const net=+targetNet.value,fee=+feePct.value/100,ship=+shipCost.value,offer=+offerPct.value/100;
+  const expectedSale=(net+ship)/(1-fee); const ask=expectedSale/(1-offer);
+  priceResult.innerHTML=`Recommended list ask: <b>$${ask.toFixed(2)}</b><br><span class="muted small">Designed so an expected ${offerPct.value}% offer can still target about $${net.toFixed(0)} net before COGS.</span>`;
+}
+function generateListing(){
+  const item=listingItem.value.trim(),cond=listingCondition.value.trim(),details=listingDetails.value.trim(),ch=listingChannel.value;
+  const title=(item+" "+details).replace(/\s+/g," ").slice(0,ch==="eBay"?80:120);
+  const desc=`${item}\n\nCondition: ${cond||"Please confirm condition."}\n\nDetails:\n${details||"Add measurements, materials, flaws, and notable features."}\n\nShips carefully packed.`;
+  listingOutput.textContent=`${ch.toUpperCase()} DRAFT\n\nTITLE\n${title}\n\nDESCRIPTION\n${desc}\n\nMISSING INFO CHECK\n• Measurements\n• Material/fabric\n• Flaws/condition confirmation\n• Brand/style identifiers\n• Shipping weight if needed`;
+}
+function generateContent(){
+  const obj=contentObjective.value,mode=contentMode.value,p=contentProduct.value||"this product";
+  if((mode.includes("likeness")||mode.includes("voice"))&&!state.settings.likenessVoiceOptIn){
+    contentOutput.innerHTML=`<span style="color:#fca5a5">Likeness/voice is not enabled. Turn it on in Lab before using that mode.</span>`;return;
+  }
+  contentOutput.innerHTML=`<b>Objective:</b> ${obj}<br><b>Mode:</b> ${mode}<br><br><b>Hook:</b> “The detail that makes ${p} worth a second look…”<br><b>Structure:</b> 1) fast visual hook 2) 2–3 product proof points 3) urgency/uniqueness 4) CTA<br><b>CTA:</b> Shop the item / join the list for new finds.<br><b>Variants:</b> TikTok/Reel, Pinterest Pin, Story, email hero.`;
+}
+function buildAdPlan(){
+  const ch=adChannel.value,b=+adBudget.value,m=+adMargin.value,p=adProduct.value||"selected collection";
+  const capped=Math.min(b,state.settings.adSpendDailyCap*3);
+  adPlan.innerHTML=`<b>${ch} TEST PLAN</b><br>Product: ${p}<br>Proposed controlled test: $${capped.toFixed(0)} total<br>Creative: 3 variants × 2 hooks<br>Primary KPI: incremental contribution profit<br>Guardrail: pause if spend reaches test cap without minimum conversion signal.<br><span class="muted">Approval required before any real spend.</span>`;
+}
+function addOutcome(){
+  const r=+mRev.value,c=+mCost.value,mins=+mMin.value,n=mNote.value||"Outcome";
+  money.revenue+=r; money.profit+=(r-c); money.minutes+=mins; money.outcomes.unshift(`${n}: $${r} revenue, $${(r-c).toFixed(2)} contribution profit`);
+  try{localStorage.setItem('commerceMoney',JSON.stringify(money));}catch(e){} renderMoney();
+}
+function renderMoney(){
+  rev.textContent=money.revenue.toFixed(0); profit.textContent=money.profit.toFixed(0); hours.textContent=(money.minutes/60).toFixed(1); pph.textContent=money.minutes?(money.profit/(money.minutes/60)).toFixed(0):"0";
+  outcomeLog.innerHTML=money.outcomes.slice(0,8).join("<br>");
+}
+function renderRules(){
+  ruleMinProfit.value=state.settings.minimumExpectedProfit; ruleHighValue.value=state.settings.highValueThreshold; ruleMarkdown.value=state.settings.maxRoutineMarkdownPct; ruleAdCap.value=state.settings.adSpendDailyCap; ruleLikeness.checked=state.settings.likenessVoiceOptIn;
+}
+function saveRules(){
+  state.settings.minimumExpectedProfit=+ruleMinProfit.value; state.settings.highValueThreshold=+ruleHighValue.value; state.settings.maxRoutineMarkdownPct=+ruleMarkdown.value; state.settings.adSpendDailyCap=+ruleAdCap.value; state.settings.likenessVoiceOptIn=ruleLikeness.checked; persist(); renderAll(); ruleMsg.textContent="Rules saved. The prototype updates immediately.";
+}
+function addBlindspot(){const t=blindspot.value.trim();if(!t)return;blindspots.unshift({text:t,date:new Date().toLocaleDateString()});try{localStorage.setItem('commerceBlindspots',JSON.stringify(blindspots));}catch(e){} blindspot.value="";renderBlindspots();}
+function renderBlindspots(){blindspotLog.innerHTML=blindspots.map(x=>`• ${x.date}: ${x.text}`).join("<br>")||'<span class="muted">No blind spots logged yet.</span>';}
+function renderChannels(){
+  channelBody.innerHTML=state.channels.map(x=>`<tr><td>${x.name}</td><td>${x.type}</td><td>${x.enabled?"Yes":"No"}</td><td>${x.connection}</td></tr>`).join("");
+}
+function exportInventory(){
+  const blob=new Blob([JSON.stringify(state.inventory,null,2)],{type:"application/json"}); const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="commerce_os_inventory.json";a.click();
+}
+init();
+</script>
+</body></html>
