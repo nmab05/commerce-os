@@ -53,10 +53,14 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 .field-error{border-color:#dc2626!important;background:#fff7f7!important}
 .recon-sticky{position:sticky;bottom:76px;background:rgba(255,255,255,.96);border:1px solid #d8dee9;border-radius:12px;padding:8px;z-index:20}
 @media(max-width:700px){header{padding:12px 12px 8px}main{padding:10px}.card{padding:11px}.row>.btn{min-height:42px}.recon-grid{grid-template-columns:1fr}.choice{grid-template-columns:1fr}#importSource{width:100%!important}}
+
+.connector-row{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;align-items:center;border-bottom:1px solid #e5e7eb;padding:8px 0}
+.connector-row:last-child{border:0}
+@media(max-width:700px){.connector-row{grid-template-columns:1fr 1fr}.connector-row .connector-msg{grid-column:1/-1}}
 </style>
 </head>
 <body>
-<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.2 • standalone release • configurable by design</div></header>
+<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.3 • integration foundation • configurable by design</div></header>
 <main>
 <section id="Today" class="page active">
   <div class="grid g4">
@@ -141,7 +145,7 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
   <div class="card"><h3>Rules</h3><label>Minimum expected sourcing profit</label><input id="ruleMinProfit" type="number"><label>High-value threshold</label><input id="ruleHighValue" type="number"><label>Max routine markdown %</label><input id="ruleMarkdown" type="number"><label>Daily ad test cap</label><input id="ruleAdCap" type="number"><label><input id="ruleLikeness" type="checkbox" style="width:auto"> Enable likeness / voice features</label><button class="btn" onclick="saveRules()">Save rules</button></div>
   <div class="spacer"></div>
   <div class="card">
-<h3>Standalone release status</h3>
+<h3>Integration phase status</h3>
 <div class="small"><span class="pill good">CORE LOGIC AUDITED</span></div>
 <div class="small muted" style="margin-top:8px">The standalone prototype includes inventory persistence, edit/sold workflows, photo intake, marketplace-aware file imports, field-level reconciliation, bulk actions, activity history, money tracking, export, and backup/restore. Live marketplace APIs and live AI services remain the integration phase.</div>
 </div><div class="spacer"></div>
@@ -152,7 +156,19 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 <label><input type="checkbox" style="width:auto"> Re-import matching inventory with no unintended overwrite</label>
 <label><input type="checkbox" style="width:auto"> Reconcile one changed field and keep Existing</label>
 <label><input type="checkbox" style="width:auto"> Export inventory and full backup</label>
-<label><input type="checkbox" style="width:auto"> Restore backup and verify inventory</label></div><div class="spacer"></div><div class="card"><h3>Activity history</h3><div id="activityLog"></div><button class="btn secondary" onclick="clearActivity()">Clear history</button></div>
+<label><input type="checkbox" style="width:auto"> Restore backup and verify inventory</label></div><div class="spacer"></div><div class="card">
+<h3>Live integrations</h3>
+<div class="small muted">Marketplace credentials stay on the secure backend. Commerce OS only talks to the backend API.</div>
+<label>Backend API URL</label>
+<input id="backendApiUrl" placeholder="https://your-backend.example.com">
+<div class="row" style="margin-top:8px">
+<button class="btn" onclick="saveBackendUrl()">Save backend</button>
+<button class="btn secondary" onclick="testBackend()">Test connection</button>
+<button class="btn good" onclick="syncConfiguredConnectors()">Sync configured connectors</button>
+</div>
+<div id="backendStatus" class="small" style="margin-top:10px"></div>
+<div id="connectorStatusGrid" style="margin-top:10px"></div>
+</div><div class="spacer"></div><div class="card"><h3>Activity history</h3><div id="activityLog"></div><button class="btn secondary" onclick="clearActivity()">Clear history</button></div>
   <div class="spacer"></div>
   <div class="card"><h3>Backup & restore</h3><div class="row"><button class="btn secondary" onclick="exportBackup()">Download full backup</button><label for="restoreBackup" class="btn secondary" style="margin:0;cursor:pointer">Restore backup</label><input id="restoreBackup" type="file" accept=".json" style="position:absolute;left:-9999px;opacity:0" onchange="restoreBackupFile(event)"></div></div>
 </section>
@@ -178,7 +194,7 @@ function loadState(){
   if(!state) state=JSON.parse(JSON.stringify(DEFAULT_STATE));
   if(!state.photoInbox)state.photoInbox=[];
   if(!state.activityLog)state.activityLog=[];
-  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};state.schemaVersion="1.2";
+  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};if(!state.integration)state.integration={apiUrl:""};state.schemaVersion="1.3";
   state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});
 }
 function persist(){try{localStorage.setItem("commerceState",JSON.stringify(state))}catch(e){}}
@@ -189,7 +205,7 @@ function init(){
 function buildNav(){const n=document.getElementById("nav");n.innerHTML="";pages.forEach((p,i)=>{const b=document.createElement("button");b.innerHTML=`<span class="ico">${icons[p]}</span>${p}`;b.className=i===0?"active":"";b.onclick=()=>showPage(p,b);n.appendChild(b);})}
 function showPage(p,b){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(p).classList.add("active");document.querySelectorAll(".bottom-nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");window.scrollTo(0,0);}
 function actionScore(x){let v=(Number(x.ask||0)/3)+(Number(x.daysListed||0)/20);if(x.season==="Halloween")v+=18;if((x.status||"").includes("Research"))v-=15;if(x.status==="Sold")v=-999;return Math.round(v)}
-function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();}
+function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();}
 function renderMetrics(){const active=state.inventory.filter(x=>x.status!=="Sold");mInventory.textContent=active.length;mHigh.textContent=active.filter(x=>Number(x.ask)>=state.settings.highValueThreshold).length;mActions.textContent=active.length;mChannels.textContent=new Set(active.flatMap(x=>x.marketplaces||[])).size;}
 function renderQueues(){const list=state.inventory.filter(x=>x.status!=="Sold").sort((a,b)=>actionScore(b)-actionScore(a));const h=list.map((x,i)=>`<div class="action"><b>${i+1}. ${x.title}</b><div class="small muted">${x.recommendedAction||"Review"} • ${x.recommendedRange||""}</div></div>`).join("");todayQueue.innerHTML=h;sellQueue.innerHTML=h;}
 
@@ -253,8 +269,83 @@ function renderRules(){ruleMinProfit.value=state.settings.minimumExpectedProfit;
 function saveRules(){state.settings.minimumExpectedProfit=+ruleMinProfit.value;state.settings.highValueThreshold=+ruleHighValue.value;state.settings.maxRoutineMarkdownPct=+ruleMarkdown.value;state.settings.adSpendDailyCap=+ruleAdCap.value;state.settings.likenessVoiceOptIn=ruleLikeness.checked;log("Updated rules");persist();renderAll()}
 function renderActivity(){activityLog.innerHTML=state.activityLog.length?state.activityLog.slice(0,40).map(a=>`<div class="activity"><b>${a.action}</b><div class="small">${a.title||""}</div><div class="small muted">${new Date(a.at).toLocaleString()} ${a.details||""}</div></div>`).join(""):'<div class="small muted">No activity yet.</div>'}
 function clearActivity(){if(confirm("Clear activity history?")){state.activityLog=[];persist();renderActivity()}}
-function exportBackup(){download("commerce_os_backup.json",JSON.stringify({version:"1.2",state},null,2))}
+function exportBackup(){download("commerce_os_backup.json",JSON.stringify({version:"1.3",state},null,2))}
 async function restoreBackupFile(e){try{const f=e.target.files[0];if(!f)return;const o=JSON.parse((await f.text()).replace(/^\ufeff/,""));if(!o.state||!Array.isArray(o.state.inventory)||!o.state.settings)throw new Error("Invalid Commerce OS backup.");state=o.state;if(!state.photoInbox)state.photoInbox=[];if(!state.activityLog)state.activityLog=[];if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});persist();renderAll();toastMsg("Backup restored.")}catch(err){toastMsg(err.message)}e.target.value=""}
+
+
+function cleanApiUrl(s){return String(s||"").trim().replace(/\/+$/,"")}
+function saveBackendUrl(){
+  state.integration=state.integration||{};
+  state.integration.apiUrl=cleanApiUrl(backendApiUrl.value);
+  persist();toastMsg("Backend URL saved.");renderIntegrationPanel();
+}
+function renderIntegrationPanel(){
+  if(!document.getElementById("backendApiUrl"))return;
+  backendApiUrl.value=(state.integration&&state.integration.apiUrl)||"";
+  if(!state.integration?.apiUrl){
+    backendStatus.innerHTML='<span class="muted">No backend configured yet.</span>';
+    connectorStatusGrid.innerHTML="";
+  }
+}
+async function apiFetch(path,opts={}){
+  const base=cleanApiUrl(state.integration?.apiUrl);
+  if(!base)throw new Error("Set the Backend API URL first.");
+  const r=await fetch(base+path,{...opts,headers:{"Content-Type":"application/json",...(opts.headers||{})}});
+  let body=null;try{body=await r.json()}catch(e){}
+  if(!r.ok)throw new Error(body?.error||body?.message||`Backend returned ${r.status}`);
+  return body;
+}
+async function testBackend(){
+  try{
+    backendStatus.textContent="Testing…";
+    const h=await apiFetch("/api/health");
+    backendStatus.innerHTML=`<span class="pill good">CONNECTED</span> ${h.name||"Commerce OS Backend"} ${h.version||""}`;
+    const c=await apiFetch("/api/connectors");
+    connectorStatusGrid.innerHTML=(c.connectors||[]).map(x=>`<div class="connector-row"><b>${x.name}</b><span class="pill ${x.configured?'good':'warn'}">${x.configured?'Configured':'Not configured'}</span><span class="connector-msg small muted">${x.message||""}</span></div>`).join("");
+  }catch(e){backendStatus.innerHTML=`<span style="color:#b42318">${e.message}</span>`}
+}
+function backendItemToImport(x){
+  return {
+    id:x.productId||x.id||"",
+    title:x.title||"Untitled",
+    brand:x.brand||"Unknown",
+    category:x.category||"Other",
+    status:x.status||"Active",
+    ask:Number(x.pricing||x.price||0),
+    itemCost:Number(x.itemCost||0),
+    daysListed:Number(x.daysListed||0),
+    season:x.season||"Evergreen",
+    marketplaces:x.marketplace?[x.marketplace]:[],
+    recommendedAction:"Review synced listing",
+    recommendedRange:"",
+    confidence:"Medium",
+    quantity:String(x.quantity??"1"),
+    notes:x.notes||"",
+    photos:(x.images||x.photos||[]).filter(Boolean),
+    marketplaceIds:x.marketplace&&x.listingId?{[x.marketplace]:String(x.listingId)}:{},
+    sourceRecords:x.marketplace?[{
+      source:x.marketplace,
+      listingId:String(x.listingId||""),
+      listingUrl:String(x.listingUrl||""),
+      imageUrl:String((x.images||[])[0]||""),
+      importedAt:new Date().toISOString()
+    }]:[],
+    selected:false
+  };
+}
+async function syncConfiguredConnectors(){
+  try{
+    backendStatus.textContent="Syncing configured connectors…";
+    const data=await apiFetch("/api/sync");
+    const items=(data.items||[]).map(backendItemToImport).filter(x=>x.title&&x.title!=="Untitled");
+    if(!items.length){backendStatus.textContent="Sync completed, but no inventory records were returned.";return}
+    buildRecon(items);
+    importMsg.textContent=`Loaded ${items.length} live connector item(s) for reconciliation.`;
+    const invBtn=[...document.querySelectorAll(".bottom-nav button")].find(b=>b.textContent.includes("Inventory"));
+    if(invBtn)showPage("Inventory",invBtn);
+    toastMsg(`${items.length} connector records ready to reconcile.`);
+  }catch(e){backendStatus.innerHTML=`<span style="color:#b42318">${e.message}</span>`}
+}
 
 document.addEventListener("DOMContentLoaded",init);
 </script>
