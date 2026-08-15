@@ -171,12 +171,18 @@ pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;colo
 #itemModal .summary-cell span{display:block;font-size:10px;color:#667085;text-transform:uppercase}
 @media(max-width:700px){#itemModal .row .btn{flex:1}}
 </style>
+
+<style>
+@media(max-width:700px){
+  #importSource{width:100% !important}
+}
+</style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <div class="brand">Commerce OS</div>
-    <div class="sub">Prototype v0.7 • item controls • configurable by design</div>
+    <div class="sub">Prototype v0.8 • marketplace import ready • configurable by design</div>
     <div class="nav" id="nav"></div>
     <div class="card" style="margin-top:18px">
       <div class="small muted">Prototype rule</div>
@@ -234,11 +240,24 @@ pre,code{background:#f8fafc;color:#111827}.btn.secondary{background:#e9eef8;colo
       <div class="card">
         <div class="row" style="justify-content:space-between"><h3>Existing inventory</h3>
 <div class="row">
+<select id="importSource" style="width:auto;min-width:132px">
+  <option value="Generic">Import source</option>
+  <option>eBay</option>
+  <option>Poshmark</option>
+  <option>Mercari</option>
+  <option>Etsy</option>
+  <option>Depop</option>
+  <option>Vinted</option>
+  <option>Whatnot</option>
+  <option>Shopify</option>
+  <option>Vendoo</option>
+  <option value="Generic">Generic file</option>
+</select>
 <label for="inventoryImport" class="btn import-btn" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin:0">Import</label>
 <button class="btn secondary" onclick="exportInventory()">Export</button>
 <button class="btn good" onclick="showAddItem()">Add item</button>
 </div></div>
-<input id="inventoryImport" type="file" accept=".json,.csv,application/json,text/csv" onchange="importInventoryFile(event)" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"/>
+<input id="inventoryImport" type="file" accept=".json,.csv,.tsv,application/json,text/csv,text/tab-separated-values" onchange="importInventoryFile(event)" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"/>
 <div id="importMsg" class="small muted" style="margin:8px 0">Import accepts JSON or CSV.</div>
 <div id="reconcilePanel" class="card" style="display:none;margin:12px 0;background:#fbfdff">
   <h3>Reconcile imported inventory</h3>
@@ -417,7 +436,7 @@ function init(){
   } catch(e) {
     // iOS file preview may restrict storage; app still works with embedded defaults.
   }
-  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.marketplaceIds)x.marketplaceIds={};if(x.notes===undefined)x.notes='';}); buildNav(); buildMobileNav(); renderAll();
+  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(x.notes===undefined)x.notes='';}); buildNav(); buildMobileNav(); renderAll();
 }
 function persist(){try{localStorage.setItem('commerceState',JSON.stringify(state));}catch(e){}}
 function buildNav(){
@@ -462,6 +481,7 @@ function openItem(id){
     <div class="summary-cell"><span>Gross Spread</span><b>$${gross.toFixed(2)}</b></div>
   </div><div style="margin-top:10px"><b>Marketplaces:</b> ${(x.marketplaces||[]).join(", ")||"—"}</div>
   <div style="margin-top:6px"><b>Recommended action:</b> ${x.recommendedAction||"—"}</div>
+  <div style="margin-top:6px"><b>Source records:</b> ${(x.sourceRecords||[]).map(r=>r.source+(r.listingId?` #${r.listingId}`:"")).join(", ")||"—"}</div>
   <div style="margin-top:6px"><b>Notes:</b> ${x.notes||"—"}</div>`;
   modalViewActions.style.display="flex"; modalEditPanel.style.display="none"; itemModal.style.display="block";
 }
