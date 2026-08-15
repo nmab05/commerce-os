@@ -4,6 +4,10 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Commerce OS Prototype</title>
+<meta name="theme-color" content="#0b1220">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Commerce OS">
 <style>
 :root{
   --bg:#0f172a;--panel:#111827;--panel2:#1f2937;--muted:#94a3b8;--text:#f8fafc;
@@ -32,12 +36,38 @@ table{width:100%;border-collapse:collapse;font-size:13px} th,td{border-bottom:1p
 code{background:#111827;padding:2px 5px;border-radius:5px}
 @media(max-width:1000px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:relative}.g4,.g3,.g2{grid-template-columns:1fr}.nav{display:flex;overflow:auto}.nav button{min-width:max-content}}
 </style>
+
+<style>
+body{overflow-x:hidden}
+.mobile-bottom-nav{display:none}.inventory-cards{display:none}.source-hero{display:none}
+@media(max-width:700px){
+  body{padding-bottom:78px}
+  .app{display:block}.sidebar{position:relative;height:auto;width:100%;padding:18px 18px 8px;border-right:0;border-bottom:1px solid var(--line);overflow:hidden}
+  .brand{font-size:22px;margin-bottom:6px}.sub{white-space:normal;margin-bottom:8px}.sidebar .nav,.sidebar .card{display:none}
+  .main{padding:16px 14px 24px;width:100%;overflow:hidden}.topbar{display:block;margin-bottom:12px}.topbar .row{margin-top:8px;gap:6px}
+  .topbar .badge{font-size:11px;max-width:48%;white-space:normal}h1{font-size:24px}
+  .grid.g4,.grid.g3,.grid.g2{grid-template-columns:1fr!important}.card{padding:14px;border-radius:16px;min-width:0;overflow:hidden}
+  #Today .grid.g4{grid-template-columns:1fr 1fr!important}#Today .metric{font-size:30px}
+  .action{display:block}.action .right{text-align:left;margin-top:8px}table{display:none}.inventory-cards{display:block}
+  .inventory-card{border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 0 12px;background:linear-gradient(180deg,#121b2d,#0f172a)}
+  .inventory-card .title{font-size:16px;font-weight:800;line-height:1.25;margin-bottom:7px}.inventory-card .meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .inventory-card .kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.inventory-card .kv div{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:9px}
+  .inventory-card .kv span{display:block;color:var(--muted);font-size:11px;margin-bottom:2px}.inventory-card .actionbox{background:#0b1220;border-radius:10px;padding:10px;margin-top:8px}
+  .inventory-card button{width:100%;margin-top:10px}.source-hero{display:block;text-align:center;padding:18px 6px}.source-hero .cam{font-size:42px}
+  #Source input,#Source select,#Source textarea{font-size:16px}#sourcePreview{max-width:100%;width:100%;height:auto}
+  .source-secondary{display:none}.source-secondary.open{display:block}
+  .mobile-bottom-nav{position:fixed;display:flex;left:0;right:0;bottom:0;z-index:999;background:rgba(10,16,32,.96);border-top:1px solid var(--line);backdrop-filter:blur(10px);padding:5px 3px max(5px,env(safe-area-inset-bottom));overflow-x:auto}
+  .mobile-bottom-nav button{flex:0 0 58px;background:transparent;border:0;color:#94a3b8;font-size:10px;padding:8px 2px}.mobile-bottom-nav button.active{color:#fff;background:#172033;border-radius:9px}
+  .mobile-bottom-nav .ico{display:block;font-size:17px;margin-bottom:2px}pre{overflow-wrap:anywhere;word-break:break-word}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <div class="brand">Commerce OS</div>
-    <div class="sub">Prototype v0.1.1 • iPhone-compatible • configurable by design</div>
+    <div class="sub">Prototype v0.2 • mobile-first • configurable by design</div>
     <div class="nav" id="nav"></div>
     <div class="card" style="margin-top:18px">
       <div class="small muted">Prototype rule</div>
@@ -77,12 +107,15 @@ code{background:#111827;padding:2px 5px;border-radius:5px}
           <div class="muted small">Browser prototype: previews the photo and runs economics from your inputs. Live visual identification will plug into the AI connector later.</div>
           <label>Item photo</label><input type="file" accept="image/*" capture="environment" id="sourcePhoto"/>
           <img id="sourcePreview" class="preview"/>
+          <button class="btn secondary" id="sourceMoreBtn" onclick="toggleSourceDetails()" style="margin-top:10px">Add / edit economics</button>
+          <div id="sourceSecondary" class="source-secondary">
           <label>What do you think it is? (optional)</label><input id="sourceTitle" placeholder="e.g., Farm Rio maxi dress"/>
           <label>Store price</label><input type="number" id="sourceCost" value="20"/>
           <label>Expected sale price</label><input type="number" id="sourceSale" value="75"/>
           <label>Estimated fees + shipping</label><input type="number" id="sourceFees" value="20"/>
           <label>Estimated owner minutes</label><input type="number" id="sourceMinutes" value="15"/>
-          <button class="btn good" onclick="analyzeSource()">Analyze BUY / TEST / PASS</button>
+          </div>
+          <button class="btn good" onclick="analyzeSource()" style="margin-top:10px;width:100%">Analyze BUY / TEST / PASS</button>
         </div>
         <div class="card"><h3>Sourcing decision</h3><div id="sourceResult" class="muted">Add an item to analyze.</div></div>
       </div>
@@ -91,7 +124,7 @@ code{background:#111827;padding:2px 5px;border-radius:5px}
     <section id="Inventory" class="page">
       <div class="card">
         <div class="row" style="justify-content:space-between"><h3>Canonical inventory</h3><button class="btn secondary" onclick="exportInventory()">Export JSON</button></div>
-        <table><thead><tr><th>Item</th><th>Status</th><th>Ask</th><th>Age</th><th>Channels</th><th>Recommended action</th></tr></thead><tbody id="inventoryBody"></tbody></table>
+        <table><thead><tr><th>Item</th><th>Status</th><th>Ask</th><th>Age</th><th>Channels</th><th>Recommended action</th></tr></thead><tbody id="inventoryBody"></tbody></table><div id="inventoryCards" class="inventory-cards"></div>
       </div>
     </section>
 
@@ -216,13 +249,33 @@ function init(){
   } catch(e) {
     // iOS file preview may restrict storage; app still works with embedded defaults.
   }
-  buildNav(); renderAll();
+  buildNav(); buildMobileNav(); renderAll();
 }
 function persist(){try{localStorage.setItem('commerceState',JSON.stringify(state));}catch(e){}}
 function buildNav(){
   const n=document.getElementById('nav'); n.innerHTML="";
   pages.forEach((p,i)=>{const b=document.createElement('button');b.textContent=p;b.className=i===0?'active':'';b.onclick=()=>showPage(p,b);n.appendChild(b);});
 }
+const navIcons={Today:"⌂",Source:"⌕",Inventory:"▦",Sell:"$",Create:"✦",Grow:"↗",Money:"◉",Lab:"⚙"};
+function buildMobileNav(){
+  const n=document.getElementById('mobileNav'); if(!n)return; n.innerHTML="";
+  pages.forEach((p,i)=>{const b=document.createElement('button');b.innerHTML=`<span class="ico">${navIcons[p]}</span>${p}`;b.className=i===0?'active':'';b.onclick=()=>showPageMobile(p,b);n.appendChild(b);});
+}
+function showPageMobile(p,b){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById(p).classList.add('active');
+  document.querySelectorAll('.mobile-bottom-nav button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');document.getElementById('pageTitle').textContent=p;window.scrollTo(0,0);
+}
+function toggleSourceDetails(){
+  const el=document.getElementById('sourceSecondary');el.classList.toggle('open');
+  document.getElementById('sourceMoreBtn').textContent=el.classList.contains('open')?'Hide economics':'Add / edit economics';
+}
+function openItem(id){
+  const x=state.inventory.find(i=>i.id===id);if(!x)return;
+  alert(`${x.title}\n\nStatus: ${x.status}\nAsk: $${x.ask}\nAge: ${x.daysListed} days\nChannels: ${x.marketplaces.join(", ")}\n\nRecommended: ${x.recommendedAction}\n${x.recommendedRange}`);
+}
+
 function showPage(p,b){
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.getElementById(p).classList.add('active');
@@ -243,8 +296,10 @@ function renderAll(){
 }
 function renderInventory(){
   const b=document.getElementById('inventoryBody'); b.innerHTML="";
+  const cards=document.getElementById('inventoryCards'); cards.innerHTML="";
   state.inventory.forEach(x=>{
     b.innerHTML+=`<tr><td><b>${x.title}</b><div class="muted small">${x.id} • ${x.brand}</div></td><td>${x.status}</td><td>$${x.ask}</td><td>${x.daysListed}d</td><td>${x.marketplaces.join(", ")}</td><td>${x.recommendedAction}<div class="muted small">${x.recommendedRange}</div></td></tr>`;
+    cards.innerHTML+=`<div class="inventory-card"><div class="title">${x.title}</div><div class="meta"><span class="pill">${x.status}</span><span class="pill">${x.brand}</span><span class="pill">${x.quantity} qty</span></div><div class="kv"><div><span>ASK</span><b>$${x.ask}</b></div><div><span>AGE</span><b>${x.daysListed} days</b></div></div><div class="small muted">${x.marketplaces.join(" • ")}</div><div class="actionbox"><div class="small muted">RECOMMENDED ACTION</div><b>${x.recommendedAction}</b><div class="small muted" style="margin-top:3px">${x.recommendedRange}</div></div><button class="btn secondary" onclick="openItem('${x.id}')">Open item</button></div>`;
   });
 }
 function renderQueues(){
@@ -262,6 +317,7 @@ function buildTimePlan(){
 }
 document.getElementById('sourcePhoto').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f)return; const img=document.getElementById('sourcePreview'); img.src=URL.createObjectURL(f); img.style.display='block';
+  const el=document.getElementById('sourceSecondary'); if(el){el.classList.add('open');document.getElementById('sourceMoreBtn').textContent='Hide economics';}
 });
 function analyzeSource(){
   const cost=+sourceCost.value,sale=+sourceSale.value,fees=+sourceFees.value,mins=+sourceMinutes.value;
@@ -317,4 +373,5 @@ function exportInventory(){
 }
 init();
 </script>
+<div class="mobile-bottom-nav" id="mobileNav"></div>
 </body></html>
