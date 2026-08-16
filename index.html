@@ -95,7 +95,7 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 </style>
 </head>
 <body>
-<header><div class="brand">Commerce OS</div><div class="sub">Prototype v2.0 • PHASE 4 • Action Queue + measurement automation</div></header>
+<header><div class="brand">Commerce OS</div><div class="sub">Prototype v2.0.1 • PHASE 4 • Research routing fix</div></header>
 <main>
 <section id="Today" class="page active">
   <div class="card">
@@ -109,7 +109,7 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
     <div id="phase4Metrics" class="metric-strip" style="margin:12px 0"></div>
     <div class="row">
       <button class="btn primary" onclick="buildDailyActionQueue()">Build / refresh queue</button>
-      <button class="btn secondary" onclick="showPage('Inventory',[...document.querySelectorAll('.bottom-nav button')].find(b=>b.textContent.includes('Inventory')))">Research selected item</button>
+      <button class="btn secondary" onclick="openPhase4ResearchSelected()">Research selected item</button>
     </div>
     <div id="phase4Queue"></div>
   </div>
@@ -162,11 +162,11 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
     <div class="row"><select id="optimFilter" style="width:auto" onchange="renderOptimizationQueue()"><option value="pending">Pending</option><option value="approved">Approved</option><option value="all">All</option><option value="high">High priority</option></select><button class="btn secondary" onclick="clearOptimizationQueue()">Clear queue</button></div>
     <div id="optimizationQueue"></div>
   </div>
-  <div class="card" style="margin-bottom:12px">
+  <div class="card" id="integratedResearchCard" style="margin-bottom:12px">
   <h3>Integrated Item Research</h3>
   <div class="small muted">One workspace for item identity, photos, sold/active comps, alternate valuation sources, listing optimization, pricing rationale, and approval. This is the Phase 3 operational research workflow.</div>
   <label>Item</label>
-  <select id="researchItemSelect" onchange="loadResearchItem()"></select>
+  <select id="researchItemSelect" onchange="loadResearchItem();persist()"></select><div id="researchRouteStatus" class="small muted" style="margin-top:6px"></div>
 
   <div class="research-tabs">
     <button id="tabMarket" class="active" onclick="showResearchTab('market')">Market</button>
@@ -549,14 +549,19 @@ function showResearchTab(name){
 function renderResearchItemOptions(){
   const sel=document.getElementById("researchItemSelect");if(!sel)return;
   const items=state.inventory.filter(x=>x.status!=="Sold");
-  const prev=sel.value;
+  const prev=state.researchItemId||sel.value;
   sel.innerHTML=items.map(x=>`<option value="${escapeHtml(x.id)}">${escapeHtml(x.title)}</option>`).join("");
   if(prev&&items.some(x=>x.id===prev))sel.value=prev;
+  else if(items.length)state.researchItemId=items[0].id;
   loadResearchItem();
 }
-function selectedResearchItem(){return state.inventory.find(x=>x.id===document.getElementById("researchItemSelect")?.value)}
+function selectedResearchItem(){
+  const id=document.getElementById("researchItemSelect")?.value;
+  if(id){state.researchItemId=id}
+  return state.inventory.find(x=>x.id===id);
+}
 function loadResearchItem(){
-  const x=selectedResearchItem();if(!x)return;
+  const x=selectedResearchItem();if(!x)return;const rs=document.getElementById("researchRouteStatus");if(rs)rs.textContent=`Researching: ${x.title||"selected item"}`;
   loadCompResearch();
   loadResearchPhotosFromItem();
   researchCurrentTitle.value=x.title||"";
@@ -1051,11 +1056,40 @@ function renderPhase4(){
     </div></div>`).join(""):`<div class="empty">Import Vendoo inventory, then build the daily queue.</div>`;
   renderMeasurementSummary();
 }
+function openPhase4ResearchSelected(){
+  const q=(state.actionQueue||[]).filter(x=>x.status==="pending");
+  const target=q.length?q[0]:(state.actionQueue||[])[0];
+  if(!target){toastMsg("Build the Phase 4 queue first.");return}
+  p4OpenItem(target.sourceIndex);
+}
 function p4OpenItem(idx){
-  const x=(state.inventory||state.items||[])[idx]; if(!x)return;
-  state.researchItemId=x.id;persist();
-  showPage("Inventory",[...document.querySelectorAll(".bottom-nav button")].find(b=>b.textContent.includes("Inventory")));
-  setTimeout(()=>{renderResearchItemOptions(); if(typeof loadResearchItem==="function")loadResearchItem()},50);
+  const items=(state.inventory||state.items||[]);
+  const x=items[idx];
+  if(!x){toastMsg("Could not locate that inventory item.");return}
+  state.researchItemId=x.id;
+  persist();
+
+  const inventoryBtn=[...document.querySelectorAll(".bottom-nav button")]
+    .find(b=>b.textContent.includes("Inventory"));
+  showPage("Inventory",inventoryBtn);
+
+  setTimeout(()=>{
+    try{
+      if(typeof renderResearchItemOptions==="function")renderResearchItemOptions();
+      const sel=document.getElementById("researchItemSelect");
+      if(sel){
+        const option=[...sel.options].find(o=>o.value===x.id);
+        if(option)sel.value=x.id;
+      }
+      if(typeof loadResearchItem==="function")loadResearchItem();
+      if(typeof showResearchTab==="function")showResearchTab("market");
+      const card=document.getElementById("integratedResearchCard");
+      if(card)card.scrollIntoView({behavior:"smooth",block:"start"});
+      toastMsg(`Research loaded: ${x.title||x.name||"selected item"}`);
+    }catch(e){
+      toastMsg("Research workspace opened, but item loading needs review.");
+    }
+  },120);
 }
 function p4Approve(id){
   const a=(state.actionQueue||[]).find(x=>x.id===id);if(!a)return;
