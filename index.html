@@ -57,10 +57,10 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 .connector-row{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;align-items:center;border-bottom:1px solid #e5e7eb;padding:8px 0}
 .connector-row:last-child{border:0}
 @media(max-width:700px){.connector-row{grid-template-columns:1fr 1fr}.connector-row .connector-msg{grid-column:1/-1}}
-</style>
+.optim-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}.optim-summary>div{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafbff}.optim-summary b{font-size:22px;display:block}.optim-card{border:1px solid var(--line);border-radius:12px;padding:12px;margin:9px 0;background:#fff}.optim-card.approved{border-color:#86c995;background:#f6fff7}.optim-card.rejected{opacity:.58}.optim-current,.optim-proposed{padding:9px;border-radius:8px;margin-top:6px;white-space:pre-wrap;word-break:break-word}.optim-current{background:#f4f5f7}.optim-proposed{background:#eef8ef}.priority-high{color:#b42318;font-weight:800}.priority-medium{color:#8a5a00;font-weight:800}.priority-low{color:#3559a6;font-weight:800}@media(max-width:700px){.optim-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>
 </head>
 <body>
-<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.3.1 • backend connected • configurable by design</div></header>
+<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.5 • Vendoo optimization queue • approval-first automation</div></header>
 <main>
 <section id="Today" class="page active">
   <div class="grid g4">
@@ -95,6 +95,22 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 </section>
 
 <section id="Inventory" class="page">
+  <div class="card" style="margin-bottom:12px">
+    <div class="row" style="justify-content:space-between">
+      <div><h3>Vendoo Bridge</h3><div class="small muted">Vendoo stays the marketplace hub; Commerce OS imports and reconciles its data.</div></div>
+      <span class="pill good">NO DEVELOPER ACCOUNT REQUIRED</span>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label for="vendooImport" class="btn good" style="margin:0;cursor:pointer;color:#fff">Import Vendoo CSV</label>
+      <input id="vendooImport" type="file" accept=".csv,text/csv" style="position:absolute;left:-9999px;opacity:0" onchange="importVendooCSV(event)">
+      <button class="btn secondary" onclick="approveHighPriority()">Approve high priority</button>
+      <button class="btn secondary" onclick="exportApprovedOptimizations()">Export approved plan</button>
+    </div>
+    <div id="vendooSyncStatus" class="small muted" style="margin-top:9px"></div>
+    <div id="optimSummary" class="optim-summary"></div>
+    <div class="row"><select id="optimFilter" style="width:auto" onchange="renderOptimizationQueue()"><option value="pending">Pending</option><option value="approved">Approved</option><option value="all">All</option><option value="high">High priority</option></select><button class="btn secondary" onclick="clearOptimizationQueue()">Clear queue</button></div>
+    <div id="optimizationQueue"></div>
+  </div>
   <div class="card">
     <div class="row" style="justify-content:space-between"><h3>Existing inventory</h3>
       <div class="row">
@@ -156,7 +172,8 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 <label><input type="checkbox" style="width:auto"> Re-import matching inventory with no unintended overwrite</label>
 <label><input type="checkbox" style="width:auto"> Reconcile one changed field and keep Existing</label>
 <label><input type="checkbox" style="width:auto"> Export inventory and full backup</label>
-<label><input type="checkbox" style="width:auto"> Restore backup and verify inventory</label></div><div class="spacer"></div><div class="card">
+<label><input type="checkbox" style="width:auto"> Restore backup and verify inventory</label></div><div class="spacer"></div><div class="card"><h3>Vendoo integration strategy</h3><div class="small muted">Vendoo remains the marketplace connection layer. Commerce OS imports Vendoo inventory/sales CSV exports, reconciles them against Existing inventory, and exports an action-plan CSV for approved changes and Vendoo Bulk Edit.</div></div><div class="spacer"></div>
+<div class="card">
 <h3>Live integrations</h3>
 <div class="small muted">Marketplace credentials stay on the secure backend. Commerce OS only talks to the backend API.</div>
 <label>Backend API URL</label>
@@ -194,8 +211,8 @@ function loadState(){
   if(!state) state=JSON.parse(JSON.stringify(DEFAULT_STATE));
   if(!state.photoInbox)state.photoInbox=[];
   if(!state.activityLog)state.activityLog=[];
-  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};if(!state.integration)state.integration={apiUrl:"https://commerce-os-backend-1.onrender.com"};if(!state.integration.apiUrl)state.integration.apiUrl="https://commerce-os-backend-1.onrender.com";state.schemaVersion="1.3.1";
-  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});
+  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};if(!state.integration)state.integration={apiUrl:"https://commerce-os-backend-1.onrender.com"};if(!state.vendooBridge)state.vendooBridge={lastImportAt:"",lastFileName:"",lastCount:0};if(!state.optimizationQueue)state.optimizationQueue=[];if(!state.integration.apiUrl)state.integration.apiUrl="https://commerce-os-backend-1.onrender.com";state.schemaVersion="1.3.1";
+  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(!x.vendooMeta)x.vendooMeta={};if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});
 }
 function persist(){try{localStorage.setItem("commerceState",JSON.stringify(state))}catch(e){}}
 function log(action,item=null,details=""){state.activityLog.unshift({at:new Date().toISOString(),action,itemId:item?.id||"",title:item?.title||"",details});state.activityLog=state.activityLog.slice(0,250);}
@@ -205,7 +222,7 @@ function init(){
 function buildNav(){const n=document.getElementById("nav");n.innerHTML="";pages.forEach((p,i)=>{const b=document.createElement("button");b.innerHTML=`<span class="ico">${icons[p]}</span>${p}`;b.className=i===0?"active":"";b.onclick=()=>showPage(p,b);n.appendChild(b);})}
 function showPage(p,b){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(p).classList.add("active");document.querySelectorAll(".bottom-nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");window.scrollTo(0,0);}
 function actionScore(x){let v=(Number(x.ask||0)/3)+(Number(x.daysListed||0)/20);if(x.season==="Halloween")v+=18;if((x.status||"").includes("Research"))v-=15;if(x.status==="Sold")v=-999;return Math.round(v)}
-function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();}
+function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();renderVendooStatus();renderOptimizationQueue();}
 function renderMetrics(){const active=state.inventory.filter(x=>x.status!=="Sold");mInventory.textContent=active.length;mHigh.textContent=active.filter(x=>Number(x.ask)>=state.settings.highValueThreshold).length;mActions.textContent=active.length;mChannels.textContent=new Set(active.flatMap(x=>x.marketplaces||[])).size;}
 function renderQueues(){const list=state.inventory.filter(x=>x.status!=="Sold").sort((a,b)=>actionScore(b)-actionScore(a));const h=list.map((x,i)=>`<div class="action"><b>${i+1}. ${x.title}</b><div class="small muted">${x.recommendedAction||"Review"} • ${x.recommendedRange||""}</div></div>`).join("");todayQueue.innerHTML=h;sellQueue.innerHTML=h;}
 
@@ -238,9 +255,108 @@ function removePhoto(id){state.photoInbox=state.photoInbox.filter(x=>x.id!==id);
 
 function norm(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
 function sim(a,b){const A=new Set(norm(a).split(/\s+/).filter(Boolean)),B=new Set(norm(b).split(/\s+/).filter(Boolean));if(!A.size||!B.size)return 0;let i=0;A.forEach(x=>B.has(x)&&i++);return i/Math.max(A.size,B.size)}
-function parseCSV(t,sep=","){const lines=t.split(/\r?\n/).filter(Boolean);if(lines.length<2)return[];const parse=l=>{let a=[],c="",q=false;for(let i=0;i<l.length;i++){let ch=l[i];if(ch==='"'&&l[i+1]==='"'){c+='"';i++}else if(ch==='"')q=!q;else if(ch===sep&&!q){a.push(c);c=""}else c+=ch}a.push(c);return a};const h=parse(lines[0]).map(x=>x.trim().toLowerCase());return lines.slice(1).map(l=>{const v=parse(l),o={};h.forEach((k,i)=>o[k]=v[i]??"");return o})}
+function parseCSV(t,sep=","){
+  const rows=[];let row=[],cell="",quoted=false;
+  for(let i=0;i<t.length;i++){
+    const ch=t[i],next=t[i+1];
+    if(ch==='"'){if(quoted&&next==='"'){cell+='"';i++}else quoted=!quoted}
+    else if(ch===sep&&!quoted){row.push(cell);cell=""}
+    else if((ch==="\n"||ch==="\r")&&!quoted){
+      if(ch==="\r"&&next==="\n")i++;
+      row.push(cell);cell="";
+      if(row.some(x=>String(x).length))rows.push(row);
+      row=[];
+    }else cell+=ch;
+  }
+  if(cell.length||row.length){row.push(cell);rows.push(row)}
+  if(rows.length<2)return[];
+  const h=rows[0].map(x=>String(x).replace(/^\ufeff/,"").trim().toLowerCase());
+  return rows.slice(1).map(v=>{const o={};h.forEach((k,i)=>o[k]=v[i]??"");return o});
+}
 function val(o,...ks){for(const k of ks)for(const key of Object.keys(o))if(norm(key)===norm(k)&&String(o[key]??"").trim()!=="")return o[key];return""}
 function adapt(raw,source,i){const listingId=val(raw,"listing id","item id","id","sku","offer id"),img=val(raw,"photo url","image url","image","photo","thumbnail"),markets=val(raw,"marketplaces","marketplace","platform");return{id:val(raw,"product id","sku")||"IMP-"+Date.now()+"-"+i,title:val(raw,"title","item","name","listing title")||"Untitled",brand:val(raw,"brand")||"Unknown",category:val(raw,"category","department")||"Other",status:val(raw,"status","listing status")||"Active",ask:Number(val(raw,"pricing","ask","price","list price","listing price")||0),itemCost:Number(val(raw,"item cost","cost","cogs","purchase cost")||0),daysListed:Number(val(raw,"days listed","age","listing age")||0),season:val(raw,"season")||"Evergreen",marketplaces:[...new Set([...(String(markets||"").split(/[;,|]/).map(s=>s.trim()).filter(Boolean)),...(source!=="Generic"?[source]:[])])],recommendedAction:val(raw,"recommended action","action")||"Review",recommendedRange:val(raw,"recommended range")||"",confidence:val(raw,"confidence")||"Low",quantity:val(raw,"quantity","qty")||"1",notes:val(raw,"notes","note")||"",photos:img?[String(img)]:[],marketplaceIds:source!=="Generic"&&listingId?{[source]:String(listingId)}:{},sourceRecords:source!=="Generic"?[{source,listingId:String(listingId||""),listingUrl:String(val(raw,"listing url","url","permalink")||""),imageUrl:String(img||""),importedAt:new Date().toISOString()}]:[],selected:false}}
+
+
+function cleanNum(v){const n=Number(String(v??"").replace(/[$,%]/g,"").trim());return Number.isFinite(n)?n:0}
+function daysSinceDate(v){if(!v)return 0;const d=new Date(v+"T00:00:00");return Number.isNaN(d.getTime())?0:Math.max(0,Math.floor((Date.now()-d.getTime())/86400000))}
+function splitPlatforms(v){return [...new Set(String(v||"").split(",").map(x=>x.trim()).filter(Boolean))]}
+function exactVendoo(raw,key){return String(raw[String(key).toLowerCase()]??"").trim()}
+function adaptVendoo(raw,i){
+  const title=exactVendoo(raw,"Title")||"Untitled",sku=exactVendoo(raw,"Sku"),statusRaw=exactVendoo(raw,"Status")||"Active";
+  const status=/sold/i.test(statusRaw)?"Sold":/draft/i.test(statusRaw)?"Unlisted":/active/i.test(statusRaw)?"Active":statusRaw;
+  const platforms=splitPlatforms(exactVendoo(raw,"Listing Platforms"));
+  const images=String(exactVendoo(raw,"Images")).split(/[|;]/).map(x=>x.trim()).filter(x=>/^https?:\/\//i.test(x));
+  const listedDate=exactVendoo(raw,"Listed Date"),description=exactVendoo(raw,"Description"),labels=exactVendoo(raw,"Labels");
+  return {id:sku||`VENDOO-${i+1}`,vendooRow:i+1,title,description,brand:exactVendoo(raw,"Brand")||"Unknown",
+    condition:exactVendoo(raw,"Condition"),primaryColor:exactVendoo(raw,"Primary Color"),secondaryColor:exactVendoo(raw,"Secondary Color"),
+    tags:exactVendoo(raw,"Tags"),category:exactVendoo(raw,"Category")||"Other",status,ask:cleanNum(exactVendoo(raw,"Price")),
+    itemCost:cleanNum(exactVendoo(raw,"Cost of Goods")),daysListed:daysSinceDate(listedDate),listedDate,soldDate:exactVendoo(raw,"Sold Date"),
+    soldPlatform:exactVendoo(raw,"Sold Platform"),priceSold:cleanNum(exactVendoo(raw,"Price Sold")),
+    marketplaceFees:cleanNum(exactVendoo(raw,"Marketplace Fees")),shippingExpenses:cleanNum(exactVendoo(raw,"Shipping Expenses")),
+    quantity:String(exactVendoo(raw,"Quantity Left")||"0"),quantitySold:String(exactVendoo(raw,"Quantity Sold")||"0"),
+    season:"Evergreen",marketplaces:platforms,recommendedAction:"Review optimization queue",recommendedRange:"",confidence:"High",
+    notes:[exactVendoo(raw,"Internal Notes"),labels?`Vendoo labels: ${labels}`:""].filter(Boolean).join(" • "),photos:images,
+    marketplaceIds:{},sourceRecords:platforms.map(m=>({source:m,listingId:"",listingUrl:"",imageUrl:images[0]||"",importedAt:new Date().toISOString()})),
+    selected:false,vendooMeta:{sku,rawStatus:statusRaw,labels}
+  };
+}
+function titleCandidate(x){
+  let s=[x.brand!=="Unknown"?x.brand:"",x.title,x.category,x.primaryColor,x.secondaryColor].filter(Boolean).join(" ").replace(/\s+/g," ").trim();
+  const words=[],seen=new Set();for(const w of s.split(" ")){const k=w.toLowerCase();if(!seen.has(k)){seen.add(k);words.push(w)}}
+  s=words.join(" ");if(s.length>80)s=s.slice(0,80).replace(/\s+\S*$/,"").trim();return s||x.title;
+}
+function descriptionCandidate(x){return [x.title,`Brand: ${x.brand||"Unknown"}`,x.condition?`Condition: ${x.condition}`:"",x.category?`Category: ${x.category}`:"",[x.primaryColor,x.secondaryColor].filter(Boolean).length?`Color: ${[x.primaryColor,x.secondaryColor].filter(Boolean).join(" / ")}`:"",x.tags?`Keywords: ${x.tags}`:""].filter(Boolean).join("\n")}
+function proposal(item,type,priority,field,current,proposed,reason){return{id:`OPT-${item.vendooRow}-${type}-${Math.random().toString(36).slice(2,7)}`,itemId:item.id,row:item.vendooRow,title:item.title,type,priority,field,current:String(current??""),proposed:String(proposed??""),reason,status:"pending"}}
+function generateOptimizations(x){
+  const q=[];
+  if(x.status==="Active"&&x.daysListed>=365)q.push(proposal(x,"refresh","high","Action","Keep live",`Refresh/relist ${x.daysListed}d-old listing`,"Active listing is over one year old."));
+  else if(x.status==="Active"&&x.daysListed>=180)q.push(proposal(x,"refresh","medium","Action","Keep live",`Review/relist ${x.daysListed}d-old listing`,"Older active listing may benefit from a refresh."));
+  if(x.status==="Active"&&x.marketplaces.length<2)q.push(proposal(x,"coverage","medium","Action",x.marketplaces.join(", ")||"No platform","Evaluate additional marketplace coverage","Active on fewer than two marketplaces."));
+  if(x.status==="Unlisted")q.push(proposal(x,"draft","medium","Action","Draft","Complete draft and publish when ready","Vendoo record is still a draft."));
+  if(!x.vendooMeta?.sku)q.push(proposal(x,"sku","low","SKU","Missing","Assign SKU","SKU improves reconciliation and future bulk operations."));
+  if(x.status!=="Sold"&&x.itemCost>0&&x.ask>0&&x.ask<=x.itemCost)q.push(proposal(x,"margin","high","Price",x.ask,Math.ceil(x.itemCost*1.2),`Current price is at or below recorded cost (${moneyFmt(x.itemCost)}). Proposed price is a review candidate only.`));
+  if(x.status!=="Sold"&&x.title.length>80)q.push(proposal(x,"title","medium","Title",x.title,x.title.slice(0,80).replace(/\s+\S*$/,"").trim(),"Title exceeds 80 characters."));
+  else if(x.status!=="Sold"&&x.title.length<45){const p=titleCandidate(x);if(p!==x.title)q.push(proposal(x,"title","low","Title",x.title,p,"Short title may be missing searchable brand/category/color terms."))}
+  if(x.status!=="Sold"&&(!x.description||norm(x.description)===norm(x.title)||x.description.length<80))q.push(proposal(x,"description","medium","Description",x.description||"(blank)",descriptionCandidate(x),"Description is blank, very short, or duplicates the title."));
+  if(x.status==="Sold"&&x.priceSold>0){const net=x.priceSold-x.marketplaceFees-x.shippingExpenses-x.itemCost;if(net<0)q.push(proposal(x,"sold-margin","high","Action",`Sold ${moneyFmt(x.priceSold)} / net ${moneyFmt(net)}`,"Review loss-making sale","Recorded sold economics indicate a negative net result."))}
+  return q;
+}
+function analyzeVendooItems(items){state.optimizationQueue=items.flatMap(generateOptimizations);persist();renderOptimizationQueue()}
+async function importVendooCSV(e){
+  const f=e.target.files[0];if(!f)return;
+  try{
+    const raw=parseCSV(await f.text(),","),items=raw.map((r,i)=>adaptVendoo(r,i)).filter(x=>x.title&&x.title!=="Untitled");
+    if(!items.length)throw new Error("No recognizable Vendoo rows found.");
+    state.vendooBridge={lastImportAt:new Date().toISOString(),lastFileName:f.name,lastCount:items.length};
+    analyzeVendooItems(items);buildRecon(items);persist();renderVendooStatus();
+    importMsg.textContent=`Loaded ${items.length} Vendoo item(s) and ${state.optimizationQueue.length} optimization recommendation(s).`;
+    toastMsg(`${items.length} Vendoo rows analyzed.`);
+  }catch(err){vendooSyncStatus.innerHTML=`<span style="color:#b42318">Vendoo analysis failed: ${err.message}</span>`}
+  e.target.value="";
+}
+function renderVendooStatus(){if(!document.getElementById("vendooSyncStatus"))return;const v=state.vendooBridge||{};vendooSyncStatus.textContent=v.lastImportAt?`Last Vendoo analysis: ${new Date(v.lastImportAt).toLocaleString()} • ${v.lastCount} rows • ${v.lastFileName}`:"No Vendoo export analyzed yet.";renderOptimizationQueue()}
+function setOptimizationStatus(id,status){const o=state.optimizationQueue.find(x=>x.id===id);if(o){o.status=status;persist();renderOptimizationQueue()}}
+function approveHighPriority(){state.optimizationQueue.filter(x=>x.priority==="high"&&x.status==="pending").forEach(x=>x.status="approved");persist();renderOptimizationQueue()}
+function clearOptimizationQueue(){state.optimizationQueue=[];persist();renderOptimizationQueue()}
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function renderOptimizationQueue(){
+  const box=document.getElementById("optimizationQueue"),summary=document.getElementById("optimSummary");if(!box||!summary)return;
+  const all=state.optimizationQueue||[],pending=all.filter(x=>x.status==="pending").length,approved=all.filter(x=>x.status==="approved").length,high=all.filter(x=>x.priority==="high"&&x.status!=="rejected").length;
+  summary.innerHTML=`<div><span class="small muted">Recommendations</span><b>${all.length}</b></div><div><span class="small muted">Pending</span><b>${pending}</b></div><div><span class="small muted">Approved</span><b>${approved}</b></div><div><span class="small muted">High priority</span><b>${high}</b></div>`;
+  const f=document.getElementById("optimFilter")?.value||"pending";let rows=all;
+  if(f==="pending")rows=all.filter(x=>x.status==="pending");else if(f==="approved")rows=all.filter(x=>x.status==="approved");else if(f==="high")rows=all.filter(x=>x.priority==="high"&&x.status!=="rejected");
+  rows=rows.slice().sort((a,b)=>({high:3,medium:2,low:1}[b.priority]-({high:3,medium:2,low:1}[a.priority]))).slice(0,250);
+  box.innerHTML=rows.length?rows.map(o=>`<div class="optim-card ${o.status}"><div class="row" style="justify-content:space-between"><b>${escapeHtml(o.title)}</b><span class="priority-${o.priority}">${o.priority.toUpperCase()}</span></div><div class="small muted">${o.type} • ${o.field} • Vendoo row ${o.row}</div><div class="small" style="margin-top:6px">${escapeHtml(o.reason)}</div><div class="small muted" style="margin-top:6px">Current</div><div class="optim-current">${escapeHtml(o.current)}</div><div class="small muted">Proposed</div><div class="optim-proposed">${escapeHtml(o.proposed)}</div><div class="row" style="margin-top:8px"><button class="btn good" onclick="setOptimizationStatus('${o.id}','approved')">Approve</button><button class="btn secondary" onclick="setOptimizationStatus('${o.id}','rejected')">Reject</button>${o.status!=="pending"?`<button class="btn secondary" onclick="setOptimizationStatus('${o.id}','pending')">Reset</button>`:""}</div></div>`).join(""):`<div class="empty-state">No recommendations in this view.</div>`;
+}
+function csvEscape(v){const s=String(v??"");return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}
+function exportApprovedOptimizations(){
+  const rows=(state.optimizationQueue||[]).filter(x=>x.status==="approved");if(!rows.length){toastMsg("Approve at least one optimization first.");return}
+  const head=["Vendoo Row","SKU / Item ID","Title","Priority","Optimization Type","Field","Current Value","Proposed Value","Reason","Approval Status"];
+  const csv=[head,...rows.map(o=>[o.row,o.itemId,o.title,o.priority,o.type,o.field,o.current,o.proposed,o.reason,o.status])].map(r=>r.map(csvEscape).join(",")).join("\n");
+  const b=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="commerce_os_vendoo_approved_optimizations.csv";a.click();toastMsg(`${rows.length} approved optimizations exported.`);
+}
+function exportVendooActionPlan(){exportApprovedOptimizations()}
+
 async function importInventoryFile(e){const f=e.target.files[0];if(!f)return;try{const ext=f.name.toLowerCase().split(".").pop();if(!["json","csv","tsv"].includes(ext))throw new Error("Choose a JSON, CSV, or TSV file.");let t=await f.text(),raw=[];if(f.name.toLowerCase().endsWith(".json")){const o=JSON.parse(t.replace(/^\ufeff/,""));raw=Array.isArray(o)?o:(o.inventory||o.items||o.listings||[])}else raw=parseCSV(t,f.name.toLowerCase().endsWith(".tsv")?"\t":",");const src=importSource.value||"Generic",items=raw.map((r,i)=>adapt(r,src,i)).filter(x=>x.title&&x.title!=="Untitled");if(!items.length)throw new Error("No recognizable inventory rows were found.");buildRecon(items);importMsg.textContent=`Loaded ${items.length} ${src} item(s) for reconciliation.`}catch(err){importMsg.textContent="Import failed: "+err.message}e.target.value=""}
 function bestMatch(it){let best=null,score=0;state.inventory.forEach(x=>{let s=sim(it.title,x.title);if(norm(it.brand)===norm(x.brand))s+=.15;if(it.id&&x.id&&it.id===x.id)s=1;if(s>score){score=s;best=x}});return{best,score:Math.min(score,1)}}
 const fields=[["title","Title"],["brand","Brand"],["category","Category"],["ask","Pricing"],["itemCost","Item Cost"],["status","Status"],["quantity","Quantity"],["marketplaces","Marketplaces"],["season","Season"],["recommendedAction","Recommended Action"],["notes","Notes"],["photos","Photos"]];
@@ -270,7 +386,7 @@ function saveRules(){state.settings.minimumExpectedProfit=+ruleMinProfit.value;s
 function renderActivity(){activityLog.innerHTML=state.activityLog.length?state.activityLog.slice(0,40).map(a=>`<div class="activity"><b>${a.action}</b><div class="small">${a.title||""}</div><div class="small muted">${new Date(a.at).toLocaleString()} ${a.details||""}</div></div>`).join(""):'<div class="small muted">No activity yet.</div>'}
 function clearActivity(){if(confirm("Clear activity history?")){state.activityLog=[];persist();renderActivity()}}
 function exportBackup(){download("commerce_os_backup.json",JSON.stringify({version:"1.3",state},null,2))}
-async function restoreBackupFile(e){try{const f=e.target.files[0];if(!f)return;const o=JSON.parse((await f.text()).replace(/^\ufeff/,""));if(!o.state||!Array.isArray(o.state.inventory)||!o.state.settings)throw new Error("Invalid Commerce OS backup.");state=o.state;if(!state.photoInbox)state.photoInbox=[];if(!state.activityLog)state.activityLog=[];if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});persist();renderAll();toastMsg("Backup restored.")}catch(err){toastMsg(err.message)}e.target.value=""}
+async function restoreBackupFile(e){try{const f=e.target.files[0];if(!f)return;const o=JSON.parse((await f.text()).replace(/^\ufeff/,""));if(!o.state||!Array.isArray(o.state.inventory)||!o.state.settings)throw new Error("Invalid Commerce OS backup.");state=o.state;if(!state.photoInbox)state.photoInbox=[];if(!state.activityLog)state.activityLog=[];if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(!x.vendooMeta)x.vendooMeta={};if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});persist();renderAll();toastMsg("Backup restored.")}catch(err){toastMsg(err.message)}e.target.value=""}
 
 
 function cleanApiUrl(s){return String(s||"").trim().replace(/\/+$/,"")}
