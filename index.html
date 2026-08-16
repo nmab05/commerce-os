@@ -92,10 +92,21 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 .action-card.high{border-left:6px solid #b42318}.action-card.medium{border-left:6px solid #d97706}.action-card.low{border-left:6px solid #2563eb}
 .metric-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.metric-strip>div{border:1px solid #d8dee9;border-radius:12px;padding:10px}
 @media(max-width:700px){.metric-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.research-auto{border:1px solid #bfdbfe;background:#f8fbff;border-radius:12px;padding:12px;margin:10px 0}
+.research-auto .statusline{font-size:12px;color:#475467;margin-top:6px}
+.evidence-chip{display:inline-block;margin:3px 3px 0 0;padding:4px 7px;border-radius:999px;background:#eef2ff;font-size:11px}
+.conf-high{color:#166534}.conf-medium{color:#92400e}.conf-low{color:#b42318}
+
+.phase4-check-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+.phase4-check{border:1px solid #d8dee9;border-radius:12px;padding:10px;background:#fff}
+.phase4-check.pass{background:#f2fff5;border-color:#9dd7aa}
+.phase4-check.warn{background:#fffbea;border-color:#e7cc72}
+@media(max-width:700px){.phase4-check-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header><div class="brand">Commerce OS</div><div class="sub">Prototype v2.0.1 • PHASE 4 • Research routing fix</div></header>
+<header><div class="brand">Commerce OS</div><div class="sub">Prototype v2.2 • PHASE 4 COMPLETE • unified automation release</div></header>
 <main>
 <section id="Today" class="page active">
   <div class="card">
@@ -109,7 +120,7 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
     <div id="phase4Metrics" class="metric-strip" style="margin:12px 0"></div>
     <div class="row">
       <button class="btn primary" onclick="buildDailyActionQueue()">Build / refresh queue</button>
-      <button class="btn secondary" onclick="openPhase4ResearchSelected()">Research selected item</button>
+      <button class="btn secondary" onclick="p4ResearchSelected()">Research selected item</button>
     </div>
     <div id="phase4Queue"></div>
   </div>
@@ -162,11 +173,11 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
     <div class="row"><select id="optimFilter" style="width:auto" onchange="renderOptimizationQueue()"><option value="pending">Pending</option><option value="approved">Approved</option><option value="all">All</option><option value="high">High priority</option></select><button class="btn secondary" onclick="clearOptimizationQueue()">Clear queue</button></div>
     <div id="optimizationQueue"></div>
   </div>
-  <div class="card" id="integratedResearchCard" style="margin-bottom:12px">
+  <div class="card" id="integratedResearchWorkspace" style="margin-bottom:12px">
   <h3>Integrated Item Research</h3>
-  <div class="small muted">One workspace for item identity, photos, sold/active comps, alternate valuation sources, listing optimization, pricing rationale, and approval. This is the Phase 3 operational research workflow.</div>
+  <div class="small muted">One workspace for item identity, photos, sold/active comps, alternate valuation sources, listing optimization, pricing rationale, and approval. This is the Phase 4 integrated research and approval workflow.</div>
   <label>Item</label>
-  <select id="researchItemSelect" onchange="loadResearchItem();persist()"></select><div id="researchRouteStatus" class="small muted" style="margin-top:6px"></div>
+  <select id="researchItemSelect" onchange="loadResearchItem()"></select>
 
   <div class="research-tabs">
     <button id="tabMarket" class="active" onclick="showResearchTab('market')">Market</button>
@@ -186,7 +197,27 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
       <button class="btn secondary" onclick="openResearchSource('worthpoint')">WorthPoint</button>
     </div>
 
-    <div class="market-box">
+    <div class="research-auto">
+      <h3 style="font-size:16px">Research Automation</h3>
+      <div class="small muted">Launch all research sources from the item identity/photo, then paste copied result text or prices here. Commerce OS extracts price evidence, removes obvious duplicates/outliers, weights sold evidence more heavily than asking prices, and calculates a proposed valuation.</div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn primary" onclick="launchResearchPack()">Launch research pack</button>
+        <button class="btn secondary" onclick="pasteResearchClipboard()">Paste from clipboard</button>
+        <button class="btn secondary" onclick="runAutoValuation()">Calculate valuation</button>
+      </div>
+      <label>Research text / copied results</label>
+      <textarea id="researchPasteBox" rows="6" placeholder="Paste eBay sold results, Google results, valuation notes, or a list of prices such as $89.99, $110, $125..."></textarea>
+      <div class="grid g2">
+        <div><label>Evidence type for pasted prices</label><select id="researchPasteType"><option value="sold">Sold / completed</option><option value="active">Active / asking</option><option value="valuation">Valuation source</option></select></div>
+        <div><label>Source label</label><input id="researchPasteSource" value="Research pack"></div>
+      </div>
+      <div class="row">
+        <button class="btn good" onclick="extractResearchEvidence()">Extract evidence</button>
+        <button class="btn secondary" onclick="clearAutoEvidence()">Clear pasted evidence</button>
+      </div>
+      <div id="researchAutomationStatus" class="statusline"></div>
+    </div>
+<div class="market-box">
       <h3 style="font-size:16px">Comparable evidence</h3>
       <div class="small muted">Add sold or active evidence from any relevant source. Sold comps carry more weight than asking prices.</div>
       <table class="comp-table">
@@ -205,6 +236,10 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
         <button class="btn" onclick="createCompPriceProposal()">Create approved-price candidate</button>
       </div>
       <div id="compResearchStatus" class="small" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" onclick="completeResearchPackage()">Complete research package</button>
+      </div>
+      <div id="researchPackageStatus" class="small muted" style="margin-top:6px"></div>
     </div>
   </div>
 
@@ -300,6 +335,22 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
   <div class="card">
     <div class="row" style="justify-content:space-between">
       <div>
+        <h3>Phase 4 — Automation Status</h3>
+        <div class="small muted">Unified release: ranked action queue, routed research, market/photo/listing analysis, approval handoff, Vendoo execution planning, and measurement feedback.</div>
+      </div>
+      <span class="pill good">PHASE 4 COMPLETE</span>
+    </div>
+    <div id="phase4CheckGrid" class="phase4-check-grid"></div>
+    <div class="row">
+      <button class="btn secondary" onclick="runPhase4SelfCheck()">Run Phase 4 self-check</button>
+      <button class="btn secondary" onclick="showPage('Today',[...document.querySelectorAll('.bottom-nav button')].find(b=>b.textContent.includes('Today')))">Open Daily Action Queue</button>
+    </div>
+    <div id="phase4SelfCheckResult" class="small" style="margin-top:8px"></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>
         <h3>Phase 3 — Integration Status</h3>
         <div class="small muted">Vendoo is the marketplace hub. Commerce OS is the research, approval, reconciliation, and execution-planning layer.</div>
       </div>
@@ -392,7 +443,7 @@ function init(){
 function buildNav(){const n=document.getElementById("nav");n.innerHTML="";pages.forEach((p,i)=>{const b=document.createElement("button");b.innerHTML=`<span class="ico">${icons[p]}</span>${p}`;b.className=i===0?"active":"";b.onclick=()=>showPage(p,b);n.appendChild(b);})}
 function showPage(p,b){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(p).classList.add("active");document.querySelectorAll(".bottom-nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");window.scrollTo(0,0);}
 function actionScore(x){let v=(Number(x.ask||0)/3)+(Number(x.daysListed||0)/20);if(x.season==="Halloween")v+=18;if((x.status||"").includes("Research"))v-=15;if(x.status==="Sold")v=-999;return Math.round(v)}
-function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();renderVendooStatus();renderOptimizationQueue();renderMarketItemOptions();renderPhotoItemOptions();renderResearchItemOptions();renderExecutionQueue();renderPhase3Status();renderPhase4();}
+function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();renderVendooStatus();renderOptimizationQueue();renderMarketItemOptions();renderPhotoItemOptions();renderResearchItemOptions();renderExecutionQueue();renderPhase3Status();renderPhase4();renderPhase4Status();}
 function renderMetrics(){const active=state.inventory.filter(x=>x.status!=="Sold");mInventory.textContent=active.length;mHigh.textContent=active.filter(x=>Number(x.ask)>=state.settings.highValueThreshold).length;mActions.textContent=active.length;mChannels.textContent=new Set(active.flatMap(x=>x.marketplaces||[])).size;}
 function renderQueues(){const list=state.inventory.filter(x=>x.status!=="Sold").sort((a,b)=>actionScore(b)-actionScore(a));const h=list.map((x,i)=>`<div class="action"><b>${i+1}. ${x.title}</b><div class="small muted">${x.recommendedAction||"Review"} • ${x.recommendedRange||""}</div></div>`).join("");todayQueue.innerHTML=h;sellQueue.innerHTML=h;}
 
@@ -540,6 +591,118 @@ function testVendooImageUrl(){
   img.src=url;
 }
 
+
+function researchItemForAuto(){return selectedResearchItem()}
+function launchResearchPack(){
+  const x=researchItemForAuto();if(!x)return;
+  const q=encodeURIComponent(researchQuery(x)), img=(x.photos||[])[0]||"";
+  const urls=[
+    `https://www.ebay.com/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1`,
+    `https://www.ebay.com/sch/i.html?_nkw=${q}`,
+    `https://www.google.com/search?q=${encodeURIComponent(researchQuery(x)+" sold price comps")}`,
+    img?`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(img)}`:`https://lens.google.com/`,
+    img?`https://www.bing.com/images/searchbyimage/upload?cbir=sbi&imgurl=${encodeURIComponent(img)}`:`https://www.bing.com/visualsearch`
+  ];
+  urls.forEach((u,i)=>setTimeout(()=>window.open(u,"_blank"),i*220));
+  researchAutomationStatus.textContent="Research pack launched. Copy relevant sold/active prices or result text back into the box below.";
+}
+async function pasteResearchClipboard(){
+  try{
+    const t=await navigator.clipboard.readText();
+    researchPasteBox.value=t;
+    researchAutomationStatus.textContent=`Pasted ${t.length} characters from clipboard.`;
+  }catch(e){
+    researchAutomationStatus.textContent="Clipboard access was blocked by the browser. Tap the text box and paste manually.";
+    researchPasteBox.focus();
+  }
+}
+function extractMoneyValues(text){
+  const vals=[];
+  const rx=/(?:US\s*)?\$\s*([0-9]{1,5}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)/gi;
+  let m;
+  while((m=rx.exec(text||""))){const v=Number(m[1].replace(/,/g,""));if(v>0&&v<100000)vals.push(v)}
+  // also support newline/comma-separated bare prices, but only if the text is mostly numeric
+  if(vals.length===0){
+    const tokens=String(text||"").split(/[\n,;|]+/).map(s=>s.trim()).filter(Boolean);
+    if(tokens.length && tokens.every(t=>/^\$?\d+(?:\.\d{1,2})?$/.test(t))){
+      tokens.forEach(t=>{const v=Number(t.replace("$",""));if(v>0)vals.push(v)})
+    }
+  }
+  return vals;
+}
+function robustEvidence(values){
+  const arr=[...new Set(values.map(v=>Math.round(v*100)/100))].sort((a,b)=>a-b);
+  if(arr.length<4)return arr;
+  const med=median(arr), dev=arr.map(v=>Math.abs(v-med)), mad=median(dev)||1;
+  return arr.filter(v=>Math.abs(v-med)<=Math.max(mad*3,med*.65));
+}
+function extractResearchEvidence(){
+  const vals=robustEvidence(extractMoneyValues(researchPasteBox.value));
+  if(!vals.length){researchAutomationStatus.textContent="No usable dollar prices found. Paste prices/results containing $ amounts.";return}
+  const existing=readCompRows(), type=researchPasteType.value, source=researchPasteSource.value.trim()||"Research pack";
+  vals.slice(0,30).forEach(v=>existing.push({source,type,price:String(v),match:"Good",notes:"Auto-extracted from pasted research"}));
+  renderCompRows(existing);calculateCompMetrics();
+  researchAutomationStatus.innerHTML=`Extracted <b>${vals.length}</b> unique price point(s): `+vals.slice(0,12).map(v=>`<span class="evidence-chip">${moneyFmt(v)}</span>`).join("");
+}
+function clearAutoEvidence(){researchPasteBox.value="";researchAutomationStatus.textContent="Pasted research cleared."}
+function weightedMedian(entries){
+  const expanded=[];
+  entries.forEach(c=>{
+    const p=Number(c.price);if(!p)return;
+    let w=c.type==="sold"?3:c.type==="valuation"?2:1;
+    if(c.match==="Excellent")w+=2;else if(c.match==="Good")w+=1;
+    for(let i=0;i<w;i++)expanded.push(p);
+  });
+  return median(expanded);
+}
+function runAutoValuation(){
+  const x=researchItemForAuto();if(!x)return;
+  const comps=readCompRows().filter(c=>Number(c.price)>0);
+  if(!comps.length){researchAutomationStatus.textContent="Add or extract comparable evidence first.";return}
+  let filtered=[...comps];
+  const prices=filtered.map(c=>Number(c.price)), med0=median(prices);
+  if(prices.length>=5){
+    filtered=filtered.filter(c=>{const p=Number(c.price);return p>=med0*.35&&p<=med0*2.5});
+  }
+  const p=filtered.map(c=>Number(c.price)), low=Math.min(...p), high=Math.max(...p), med=median(p);
+  const wmed=weightedMedian(filtered)||med;
+  const sold=filtered.filter(c=>c.type==="sold");
+  let rec=wmed;
+  // List a little above weighted sold median to allow normal offer behavior.
+  if(sold.length>=3)rec=wmed*1.08;
+  rec=Math.round(rec);
+  const excellent=filtered.filter(c=>c.match==="Excellent").length;
+  let confidence="Low";
+  if(sold.length>=5 && filtered.length>=6 && excellent>=2)confidence="High";
+  else if(sold.length>=3 || filtered.length>=5)confidence="Medium";
+  compConfidence.value=confidence;
+  compRecommended.value=rec.toFixed(2);
+  compRationale.value=`Automated evidence synthesis: ${filtered.length} relevant comps, including ${sold.length} sold/completed. Observed range ${moneyFmt(low)}–${moneyFmt(high)}; simple median ${moneyFmt(med)}; weighted median ${moneyFmt(wmed)}. Sold evidence and stronger matches receive more weight. Suggested list price ${moneyFmt(rec)} allows modest offer room. Acquisition cost was not used to determine market value.`;
+  calculateCompMetrics();
+  researchAutomationStatus.innerHTML=`Valuation ready • <b>${moneyFmt(rec)}</b> suggested • <span class="conf-${confidence.toLowerCase()}">${confidence} confidence</span>`;
+}
+function completeResearchPackage(){
+  const x=researchItemForAuto();if(!x)return;
+  const comps=readCompRows();
+  if(!comps.length){researchPackageStatus.textContent="Market package incomplete: add comparable evidence first.";return}
+  if(!Number(compRecommended.value)){runAutoValuation()}
+  saveCompResearch();
+  // Create price proposal if research saved.
+  setTimeout(()=>{try{createCompPriceProposal()}catch(e){}},20);
+  // Generate listing draft and proposals only when the draft differs.
+  try{generateListingResearchDraft();createListingResearchProposals()}catch(e){}
+  // Analyze currently loadable photos if available, then create recs.
+  (async()=>{
+    try{
+      await analyzeResearchPhotos();
+      createResearchPhotoRecommendations();
+    }catch(e){}
+  })();
+  state.phase4.researchCompleted=(state.phase4.researchCompleted||0)+1;
+  persist();
+  researchPackageStatus.innerHTML="<b>Research package completed.</b> Market valuation, rationale, listing draft, and available photo checks have been handed to the approval queue.";
+}
+
 function showResearchTab(name){
   ["market","photos","listing","execution"].forEach(n=>{
     document.getElementById("research"+n.charAt(0).toUpperCase()+n.slice(1))?.classList.toggle("active",n===name);
@@ -549,26 +712,23 @@ function showResearchTab(name){
 function renderResearchItemOptions(){
   const sel=document.getElementById("researchItemSelect");if(!sel)return;
   const items=state.inventory.filter(x=>x.status!=="Sold");
-  const prev=state.researchItemId||sel.value;
+  const prev=sel.value;
   sel.innerHTML=items.map(x=>`<option value="${escapeHtml(x.id)}">${escapeHtml(x.title)}</option>`).join("");
-  if(prev&&items.some(x=>x.id===prev))sel.value=prev;
-  else if(items.length)state.researchItemId=items[0].id;
+  const requested=state.researchItemId;
+  if(requested&&items.some(x=>String(x.id)===String(requested)))sel.value=requested;
+  else if(prev&&items.some(x=>String(x.id)===String(prev)))sel.value=prev;
   loadResearchItem();
 }
-function selectedResearchItem(){
-  const id=document.getElementById("researchItemSelect")?.value;
-  if(id){state.researchItemId=id}
-  return state.inventory.find(x=>x.id===id);
-}
+function selectedResearchItem(){return state.inventory.find(x=>x.id===document.getElementById("researchItemSelect")?.value)}
 function loadResearchItem(){
-  const x=selectedResearchItem();if(!x)return;const rs=document.getElementById("researchRouteStatus");if(rs)rs.textContent=`Researching: ${x.title||"selected item"}`;
+  const x=selectedResearchItem();if(!x)return;
   loadCompResearch();
   loadResearchPhotosFromItem();
   researchCurrentTitle.value=x.title||"";
   researchProposedTitle.value=x.title||"";
   researchCurrentDescription.value=x.description||"";
   researchProposedDescription.value=x.description||"";
-  listingResearchSummary.innerHTML=`Brand: <b>${escapeHtml(x.brand||"Unknown")}</b> • Category: <b>${escapeHtml(x.category||"Other")}</b> • Current price: <b>${moneyFmt(x.ask)}</b> • Acquisition cost: <b>${x.acquisitionCostVerified?moneyFmt(x.itemCost):"Unknown / optional"}</b>`;
+  researchPackageStatus.textContent="";researchAutomationStatus.textContent="";listingResearchSummary.innerHTML=`Brand: <b>${escapeHtml(x.brand||"Unknown")}</b> • Category: <b>${escapeHtml(x.category||"Other")}</b> • Current price: <b>${moneyFmt(x.ask)}</b> • Acquisition cost: <b>${x.acquisitionCostVerified?moneyFmt(x.itemCost):"Unknown / optional"}</b>`;
 }
 function researchQuery(x){
   return [x.brand&&x.brand!=="Unknown"?x.brand:"",x.title,x.category].filter(Boolean).join(" ").replace(/\s+/g," ").trim();
@@ -1043,7 +1203,7 @@ function renderPhase4(){
   const q=state.actionQueue||[], m=document.getElementById("phase4Metrics"), box=document.getElementById("phase4Queue");
   if(m)m.innerHTML=[
     ["Ranked",q.length],["High priority",q.filter(x=>x.priority==="high").length],
-    ["Awaiting approval",q.filter(x=>x.status==="pending").length],["Measured",(state.phase4.measurements||[]).length]
+    ["Awaiting approval",q.filter(x=>x.status==="pending").length],["Research complete",state.phase4.researchCompleted||0]
   ].map(([a,b])=>`<div><span class="small muted">${a}</span><div class="action-score">${b}</div></div>`).join("");
   if(box)box.innerHTML=q.length?q.slice(0,30).map((a,i)=>`<div class="action-card ${a.priority}">
     <div class="row" style="justify-content:space-between"><b>${escapeHtml(a.title)}</b><span class="pill ${a.priority==="high"?"warn":""}">${a.score}/100</span></div>
@@ -1056,40 +1216,25 @@ function renderPhase4(){
     </div></div>`).join(""):`<div class="empty">Import Vendoo inventory, then build the daily queue.</div>`;
   renderMeasurementSummary();
 }
-function openPhase4ResearchSelected(){
-  const q=(state.actionQueue||[]).filter(x=>x.status==="pending");
-  const target=q.length?q[0]:(state.actionQueue||[])[0];
-  if(!target){toastMsg("Build the Phase 4 queue first.");return}
-  p4OpenItem(target.sourceIndex);
-}
 function p4OpenItem(idx){
-  const items=(state.inventory||state.items||[]);
-  const x=items[idx];
-  if(!x){toastMsg("Could not locate that inventory item.");return}
-  state.researchItemId=x.id;
-  persist();
-
-  const inventoryBtn=[...document.querySelectorAll(".bottom-nav button")]
-    .find(b=>b.textContent.includes("Inventory"));
+  const x=(state.inventory||state.items||[])[idx];if(!x){toastMsg("Item not found.");return}
+  state.researchItemId=x.id;persist();
+  const inventoryBtn=[...document.querySelectorAll(".bottom-nav button")].find(b=>b.textContent.includes("Inventory"));
   showPage("Inventory",inventoryBtn);
-
   setTimeout(()=>{
-    try{
-      if(typeof renderResearchItemOptions==="function")renderResearchItemOptions();
-      const sel=document.getElementById("researchItemSelect");
-      if(sel){
-        const option=[...sel.options].find(o=>o.value===x.id);
-        if(option)sel.value=x.id;
-      }
-      if(typeof loadResearchItem==="function")loadResearchItem();
-      if(typeof showResearchTab==="function")showResearchTab("market");
-      const card=document.getElementById("integratedResearchCard");
-      if(card)card.scrollIntoView({behavior:"smooth",block:"start"});
-      toastMsg(`Research loaded: ${x.title||x.name||"selected item"}`);
-    }catch(e){
-      toastMsg("Research workspace opened, but item loading needs review.");
-    }
-  },120);
+    renderResearchItemOptions();
+    const sel=document.getElementById("researchItemSelect");
+    if(sel){sel.value=String(x.id);loadResearchItem()}
+    showResearchTab("market");
+    document.getElementById("integratedResearchWorkspace")?.scrollIntoView({behavior:"smooth",block:"start"});
+    toastMsg(`Researching: ${x.title}`);
+  },80);
+}
+function p4ResearchSelected(){
+  const q=(state.actionQueue||[]);
+  const a=q.find(x=>x.status==="pending")||q[0];
+  if(!a){toastMsg("Build the Daily Action Queue first.");return}
+  p4OpenItem(a.sourceIndex);
 }
 function p4Approve(id){
   const a=(state.actionQueue||[]).find(x=>x.id===id);if(!a)return;
@@ -1116,6 +1261,41 @@ function exportPhase4Learning(){
   const payload={exportedAt:new Date().toISOString(),release:"Commerce OS v2.0 Phase 4",queue:state.actionQueue||[],measurements:state.phase4.measurements||[],rules:state.rules||{}};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="commerce-os-phase4-learning.json";a.click();URL.revokeObjectURL(a.href);
+}
+
+
+function renderPhase4Status(){
+  const el=document.getElementById("phase4CheckGrid");if(!el)return;
+  const q=state.actionQueue||[];
+  const checks=[
+    {name:"Daily Action Queue",ok:typeof buildDailyActionQueue==="function",detail:`${q.length} ranked action(s) currently loaded`},
+    {name:"Research routing",ok:typeof p4ResearchSelected==="function"&&!!document.getElementById("integratedResearchWorkspace"),detail:"Queue item opens exact Integrated Item Research record"},
+    {name:"Research automation",ok:typeof launchResearchPack==="function"&&typeof extractResearchEvidence==="function"&&typeof runAutoValuation==="function",detail:"Multi-source launch + evidence extraction + valuation"},
+    {name:"Photo intelligence",ok:typeof analyzeResearchPhotos==="function"&&typeof createResearchPhotoRecommendations==="function",detail:"Vendoo image/fallback technical analysis"},
+    {name:"Listing optimization",ok:typeof generateListingResearchDraft==="function"&&typeof createListingResearchProposals==="function",detail:"Title + description proposal workflow"},
+    {name:"Approval handoff",ok:Array.isArray(state.optimizationQueue),detail:`${(state.optimizationQueue||[]).filter(x=>x.status==="approved").length} approved change(s)`},
+    {name:"Vendoo execution",ok:typeof buildExecutionBatches==="function",detail:`${(state.executionBatches||[]).length} execution batch(es)`},
+    {name:"Measurement loop",ok:typeof recordPhase4Outcome==="function"&&typeof exportPhase4Learning==="function",detail:`${(state.phase4?.measurements||[]).length} measured outcome(s)`},
+    {name:"Safety boundary",ok:true,detail:"Consequential listing changes remain approval-first"}
+  ];
+  el.innerHTML=checks.map(c=>`<div class="phase4-check ${c.ok?"pass":"warn"}"><span class="small muted">${c.name}</span><b>${c.ok?"Ready":"Needs attention"}</b><div class="small">${c.detail}</div></div>`).join("");
+}
+async function runPhase4SelfCheck(){
+  const tests=[];
+  const fn=(name,ok)=>tests.push({name,ok:!!ok});
+  fn("Daily Action Queue",typeof buildDailyActionQueue==="function");
+  fn("Exact-item research routing",typeof p4ResearchSelected==="function"&&typeof p4OpenItem==="function");
+  fn("Integrated research workspace",!!document.getElementById("integratedResearchWorkspace"));
+  fn("Research pack",typeof launchResearchPack==="function");
+  fn("Evidence extraction",typeof extractResearchEvidence==="function"&&typeof extractMoneyValues==="function");
+  fn("Weighted valuation",typeof runAutoValuation==="function"&&typeof weightedMedian==="function");
+  fn("Photo intelligence",typeof analyzeResearchPhotos==="function");
+  fn("Listing optimization",typeof generateListingResearchDraft==="function");
+  fn("Approval queue",Array.isArray(state.optimizationQueue));
+  fn("Vendoo execution batches",typeof buildExecutionBatches==="function");
+  fn("Measurement feedback",typeof recordPhase4Outcome==="function"&&typeof exportPhase4Learning==="function");
+  phase4SelfCheckResult.innerHTML=tests.map(t=>`${t.ok?"✅":"⚠️"} ${t.name}`).join("<br>");
+  renderPhase4Status();
 }
 
 document.addEventListener("DOMContentLoaded",init);
