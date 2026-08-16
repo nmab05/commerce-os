@@ -65,10 +65,26 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 .exec-card{border:1px solid #d8dee9;border-radius:12px;padding:10px;margin:8px 0;background:#fff}
 .exec-card.executed{background:#fffbea}.exec-card.verified{background:#f2fff5;border-color:#9dd7aa}
 @media(max-width:700px){.market-grid{grid-template-columns:1fr 1fr}}
+
+.photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.photo-thumb{border:1px solid #d8dee9;border-radius:10px;overflow:hidden;background:#f7f8fb;position:relative;min-height:120px}
+.photo-thumb img{width:100%;height:140px;object-fit:contain;background:#fff;display:block}
+.photo-thumb .small{padding:6px}
+.photo-score{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0}
+.photo-score>div{border:1px solid #e2e8f0;border-radius:9px;padding:8px;background:#fff}
+.photo-score b{font-size:20px;display:block}
+.photo-ok{color:#2f7d32}.photo-warn{color:#9a6700}.photo-bad{color:#b42318}
+@media(max-width:700px){.photo-grid{grid-template-columns:1fr 1fr}.photo-score{grid-template-columns:1fr 1fr}}
+
+.comp-table{width:100%;border-collapse:collapse;margin-top:8px}.comp-table th,.comp-table td{border-bottom:1px solid #e5e7eb;padding:7px;text-align:left;font-size:12px}.comp-table input,.comp-table select{font-size:13px;padding:7px}
+.research-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.research-tabs button{border:1px solid #cbd5e1;background:#fff;padding:8px 10px;border-radius:8px}.research-tabs button.active{background:#eaf2ff;border-color:#7aa2f7}
+.research-panel{display:none}.research-panel.active{display:block}
+.comp-metric{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:10px 0}.comp-metric>div{background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:8px}.comp-metric b{display:block;font-size:18px}
+@media(max-width:700px){.comp-metric{grid-template-columns:repeat(2,minmax(0,1fr))}.comp-table{display:block;overflow-x:auto;white-space:nowrap}}
 </style>
 </head>
 <body>
-<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.6 • market intelligence + Vendoo execution • approval-first</div></header>
+<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.8 • integrated market + photo research • approval-first</div></header>
 <main>
 <section id="Today" class="page active">
   <div class="grid g4">
@@ -120,28 +136,81 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
     <div id="optimizationQueue"></div>
   </div>
   <div class="card" style="margin-bottom:12px">
-  <h3>Market Intelligence</h3>
-  <div class="small muted">Commerce OS will not invent market value. Price recommendations require recorded market evidence. Acquisition cost is optional and is used only for profitability after you verify it.</div>
-  <div id="marketResearchPanel" class="market-box">
-    <label>Select item for market research</label>
-    <select id="marketItemSelect" onchange="loadMarketResearchItem()"></select>
-    <div id="marketItemSummary" class="small muted" style="margin:7px 0"></div>
-    <div class="row">
-      <button class="btn secondary" onclick="openMarketSearch('ebay')">Open eBay sold search</button>
-      <button class="btn secondary" onclick="openMarketSearch('google')">Open web search</button>
+  <h3>Integrated Item Research</h3>
+  <div class="small muted">One workspace for item identity, photos, sold/active comps, alternate valuation sources, listing optimization, pricing rationale, and approval.</div>
+  <label>Item</label>
+  <select id="researchItemSelect" onchange="loadResearchItem()"></select>
+
+  <div class="research-tabs">
+    <button id="tabMarket" class="active" onclick="showResearchTab('market')">Market</button>
+    <button id="tabPhotos" onclick="showResearchTab('photos')">Photos</button>
+    <button id="tabListing" onclick="showResearchTab('listing')">Listing</button>
+    <button id="tabExecution" onclick="showResearchTab('execution')">Execution</button>
+  </div>
+
+  <div id="researchMarket" class="research-panel active">
+    <div class="small muted">Use the item title/brand/category to launch public research. Add only relevant comps; Commerce OS calculates the range and price recommendation from the evidence you record.</div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn secondary" onclick="openResearchSource('ebaySold')">eBay sold</button>
+      <button class="btn secondary" onclick="openResearchSource('ebayActive')">eBay active</button>
+      <button class="btn secondary" onclick="openResearchSource('google')">Google</button>
+      <button class="btn secondary" onclick="openResearchSource('lens')">Google Lens</button>
+      <button class="btn secondary" onclick="openResearchSource('bing')">Bing Visual Search</button>
+      <button class="btn secondary" onclick="openResearchSource('worthpoint')">WorthPoint</button>
     </div>
-    <div class="grid g2" style="margin-top:8px">
-      <div><label>Observed market low</label><input id="marketLow" type="number" min="0" step="0.01"></div>
-      <div><label>Observed market high</label><input id="marketHigh" type="number" min="0" step="0.01"></div>
-      <div><label>Comparable sales reviewed</label><input id="marketCompCount" type="number" min="0" step="1"></div>
-      <div><label>Confidence</label><select id="marketConfidence"><option>Low</option><option>Medium</option><option>High</option></select></div>
+
+    <div class="market-box">
+      <h3 style="font-size:16px">Comparable evidence</h3>
+      <div class="small muted">Add sold or active evidence from any relevant source. Sold comps carry more weight than asking prices.</div>
+      <table class="comp-table">
+        <thead><tr><th>Source</th><th>Type</th><th>Price</th><th>Match</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="compRows"></tbody>
+      </table>
+      <button class="btn secondary" onclick="addCompRow()">Add comp</button>
+      <div id="compMetrics" class="comp-metric"></div>
+      <div class="grid g2">
+        <div><label>Confidence</label><select id="compConfidence"><option>Low</option><option>Medium</option><option>High</option></select></div>
+        <div><label>Recommended list price</label><input id="compRecommended" type="number" step="0.01"></div>
+      </div>
+      <label>Research rationale</label><textarea id="compRationale" rows="4" placeholder="Why these comps are relevant, condition differences, rarity, seasonality, etc."></textarea>
+      <div class="row">
+        <button class="btn good" onclick="saveCompResearch()">Save research</button>
+        <button class="btn" onclick="createCompPriceProposal()">Create approved-price candidate</button>
+      </div>
+      <div id="compResearchStatus" class="small" style="margin-top:8px"></div>
     </div>
-    <label>Market evidence / notes</label><textarea id="marketNotes" rows="3" placeholder="Example: 8 sold comps reviewed; most sold between $45 and $60."></textarea>
-    <div class="row">
-      <button class="btn good" onclick="saveMarketResearch()">Save market analysis</button>
-      <button class="btn secondary" onclick="createMarketPriceProposal()">Create price proposal</button>
+  </div>
+
+  <div id="researchPhotos" class="research-panel">
+    <div class="grid g2">
+      <div><label>Fallback upload</label><input id="researchPhotoUpload" type="file" accept="image/*" multiple onchange="loadResearchFallback(event)"></div>
+      <div><label>Photo-analysis mode</label><select id="photoAnalysisMode"><option>Technical browser analysis</option><option>Manual visual review</option></select></div>
     </div>
-    <div id="marketResearchResult" class="small" style="margin-top:8px"></div>
+    <div id="researchPhotoStatus" class="small muted" style="margin-top:8px"></div>
+    <div id="researchPhotoScore" class="photo-score"></div>
+    <div id="researchPhotoGallery" class="photo-grid"></div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn good" onclick="analyzeResearchPhotos()">Analyze photos</button>
+      <button class="btn secondary" onclick="createResearchPhotoRecommendations()">Create photo recommendations</button>
+    </div>
+    <div id="researchPhotoResult" class="small" style="margin-top:8px"></div>
+  </div>
+
+  <div id="researchListing" class="research-panel">
+    <div id="listingResearchSummary" class="small muted"></div>
+    <div class="grid g2">
+      <div><label>Current title</label><textarea id="researchCurrentTitle" rows="3" readonly></textarea></div>
+      <div><label>Proposed title</label><textarea id="researchProposedTitle" rows="3"></textarea></div>
+      <div><label>Current description</label><textarea id="researchCurrentDescription" rows="8" readonly></textarea></div>
+      <div><label>Proposed description</label><textarea id="researchProposedDescription" rows="8"></textarea></div>
+    </div>
+    <div class="row"><button class="btn secondary" onclick="generateListingResearchDraft()">Generate listing draft</button><button class="btn good" onclick="createListingResearchProposals()">Add listing proposals</button></div>
+  </div>
+
+  <div id="researchExecution" class="research-panel">
+    <div class="small muted">Approved research/listing/photo proposals flow into the Vendoo Execution Queue below. Commerce OS does not write to Vendoo directly in this build.</div>
+    <button class="btn" onclick="buildExecutionBatches()">Build Vendoo batches from approvals</button>
+    <div id="researchExecutionStatus" class="small muted" style="margin-top:8px"></div>
   </div>
 </div>
 
@@ -215,7 +284,15 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 <label><input type="checkbox" style="width:auto"> Re-import matching inventory with no unintended overwrite</label>
 <label><input type="checkbox" style="width:auto"> Reconcile one changed field and keep Existing</label>
 <label><input type="checkbox" style="width:auto"> Export inventory and full backup</label>
-<label><input type="checkbox" style="width:auto"> Restore backup and verify inventory</label></div><div class="spacer"></div><div class="card"><h3>Vendoo integration strategy</h3><div class="small muted">Vendoo remains the marketplace connection layer. Commerce OS imports Vendoo inventory/sales CSV exports, reconciles them against Existing inventory, and exports an action-plan CSV for approved changes and Vendoo Bulk Edit.</div></div><div class="spacer"></div>
+<label><input type="checkbox" style="width:auto"> Restore backup and verify inventory</label></div><div class="spacer"></div><div class="card">
+<h3>Vendoo image compatibility test</h3>
+<div class="small muted">Use this to verify whether a Vendoo-hosted photo loads from Commerce OS in your browser.</div>
+<label>Vendoo image URL</label>
+<input id="vendooImageTestUrl" value="https://images.vendoo.co/images/RyIzefIpR5fraRylirB6UqZRYZz2/50c00b25-fab0-4eab-a40f-3688d4f1afbe.jpeg?width=1600&height=1600&fit=bounds&bg-color=fff&canvas=1600,1600">
+<button class="btn secondary" onclick="testVendooImageUrl()">Test image URL</button>
+<div id="vendooImageTestResult" style="margin-top:8px"></div>
+</div><div class="spacer"></div>
+<div class="card"><h3>Vendoo integration strategy</h3><div class="small muted">Vendoo remains the marketplace connection layer. Commerce OS imports Vendoo inventory/sales CSV exports, reconciles them against Existing inventory, and exports an action-plan CSV for approved changes and Vendoo Bulk Edit.</div></div><div class="spacer"></div>
 <div class="card">
 <h3>Live integrations</h3>
 <div class="small muted">Marketplace credentials stay on the secure backend. Commerce OS only talks to the backend API.</div>
@@ -254,7 +331,7 @@ function loadState(){
   if(!state) state=JSON.parse(JSON.stringify(DEFAULT_STATE));
   if(!state.photoInbox)state.photoInbox=[];
   if(!state.activityLog)state.activityLog=[];
-  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};if(!state.integration)state.integration={apiUrl:"https://commerce-os-backend-1.onrender.com"};if(!state.vendooBridge)state.vendooBridge={lastImportAt:"",lastFileName:"",lastCount:0};if(!state.optimizationQueue)state.optimizationQueue=[];if(!state.marketResearch)state.marketResearch={};if(!state.executionBatches)state.executionBatches=[];if(!state.integration.apiUrl)state.integration.apiUrl="https://commerce-os-backend-1.onrender.com";state.schemaVersion="1.3.1";
+  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};if(!state.integration)state.integration={apiUrl:"https://commerce-os-backend-1.onrender.com"};if(!state.vendooBridge)state.vendooBridge={lastImportAt:"",lastFileName:"",lastCount:0};if(!state.optimizationQueue)state.optimizationQueue=[];if(!state.marketResearch)state.marketResearch={};if(!state.executionBatches)state.executionBatches=[];if(!state.photoResearch)state.photoResearch={};if(!state.compResearch)state.compResearch={};if(!state.integration.apiUrl)state.integration.apiUrl="https://commerce-os-backend-1.onrender.com";state.schemaVersion="1.3.1";
   state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(x.acquisitionCostVerified===undefined)x.acquisitionCostVerified=false;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(!x.vendooMeta)x.vendooMeta={};if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});
 }
 function persist(){try{localStorage.setItem("commerceState",JSON.stringify(state))}catch(e){}}
@@ -265,7 +342,7 @@ function init(){
 function buildNav(){const n=document.getElementById("nav");n.innerHTML="";pages.forEach((p,i)=>{const b=document.createElement("button");b.innerHTML=`<span class="ico">${icons[p]}</span>${p}`;b.className=i===0?"active":"";b.onclick=()=>showPage(p,b);n.appendChild(b);})}
 function showPage(p,b){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(p).classList.add("active");document.querySelectorAll(".bottom-nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");window.scrollTo(0,0);}
 function actionScore(x){let v=(Number(x.ask||0)/3)+(Number(x.daysListed||0)/20);if(x.season==="Halloween")v+=18;if((x.status||"").includes("Research"))v-=15;if(x.status==="Sold")v=-999;return Math.round(v)}
-function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();renderVendooStatus();renderOptimizationQueue();renderMarketItemOptions();renderExecutionQueue();}
+function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();renderVendooStatus();renderOptimizationQueue();renderMarketItemOptions();renderPhotoItemOptions();renderResearchItemOptions();renderExecutionQueue();}
 function renderMetrics(){const active=state.inventory.filter(x=>x.status!=="Sold");mInventory.textContent=active.length;mHigh.textContent=active.filter(x=>Number(x.ask)>=state.settings.highValueThreshold).length;mActions.textContent=active.length;mChannels.textContent=new Set(active.flatMap(x=>x.marketplaces||[])).size;}
 function renderQueues(){const list=state.inventory.filter(x=>x.status!=="Sold").sort((a,b)=>actionScore(b)-actionScore(a));const h=list.map((x,i)=>`<div class="action"><b>${i+1}. ${x.title}</b><div class="small muted">${x.recommendedAction||"Review"} • ${x.recommendedRange||""}</div></div>`).join("");todayQueue.innerHTML=h;sellQueue.innerHTML=h;}
 
@@ -328,7 +405,8 @@ function adaptVendoo(raw,i){
   const title=exactVendoo(raw,"Title")||"Untitled",sku=exactVendoo(raw,"Sku"),statusRaw=exactVendoo(raw,"Status")||"Active";
   const status=/sold/i.test(statusRaw)?"Sold":/draft/i.test(statusRaw)?"Unlisted":/active/i.test(statusRaw)?"Active":statusRaw;
   const platforms=splitPlatforms(exactVendoo(raw,"Listing Platforms"));
-  const images=String(exactVendoo(raw,"Images")).split(/[|;]/).map(x=>x.trim()).filter(x=>/^https?:\/\//i.test(x));
+  const imageField=String(exactVendoo(raw,"Images")||"");
+  const images=[...imageField.matchAll(/https?:\/\/[^\s"']+/g)].map(m=>m[0].replace(/,+$/,"")).filter(Boolean);
   const listedDate=exactVendoo(raw,"Listed Date"),description=exactVendoo(raw,"Description"),labels=exactVendoo(raw,"Labels");
   return {id:sku||`VENDOO-${i+1}`,vendooRow:i+1,title,description,brand:exactVendoo(raw,"Brand")||"Unknown",
     condition:exactVendoo(raw,"Condition"),primaryColor:exactVendoo(raw,"Primary Color"),secondaryColor:exactVendoo(raw,"Secondary Color"),
@@ -400,6 +478,256 @@ function exportApprovedOptimizations(){
 }
 function exportVendooActionPlan(){exportApprovedOptimizations()}
 
+
+
+
+function testVendooImageUrl(){
+  const url=vendooImageTestUrl.value.trim();if(!url)return;
+  vendooImageTestResult.innerHTML="Testing…";
+  const img=new Image();img.crossOrigin="anonymous";
+  img.onload=()=>vendooImageTestResult.innerHTML=`<span class="pill good">LOAD SUCCESS</span><div class="small muted">${img.naturalWidth}×${img.naturalHeight}. Vendoo photo links can be used for browser-side photo intelligence.</div><img src="${escapeHtml(url)}" style="max-width:220px;max-height:220px;object-fit:contain;margin-top:6px;border:1px solid #ddd;border-radius:8px">`;
+  img.onerror=()=>vendooImageTestResult.innerHTML=`<span class="pill" style="background:#fde8e8;color:#9b1c1c">LOAD FAILED</span><div class="small muted">Use the fallback photo-upload path for this item.</div>`;
+  img.src=url;
+}
+
+function showResearchTab(name){
+  ["market","photos","listing","execution"].forEach(n=>{
+    document.getElementById("research"+n.charAt(0).toUpperCase()+n.slice(1))?.classList.toggle("active",n===name);
+    document.getElementById("tab"+n.charAt(0).toUpperCase()+n.slice(1))?.classList.toggle("active",n===name);
+  });
+}
+function renderResearchItemOptions(){
+  const sel=document.getElementById("researchItemSelect");if(!sel)return;
+  const items=state.inventory.filter(x=>x.status!=="Sold");
+  const prev=sel.value;
+  sel.innerHTML=items.map(x=>`<option value="${escapeHtml(x.id)}">${escapeHtml(x.title)}</option>`).join("");
+  if(prev&&items.some(x=>x.id===prev))sel.value=prev;
+  loadResearchItem();
+}
+function selectedResearchItem(){return state.inventory.find(x=>x.id===document.getElementById("researchItemSelect")?.value)}
+function loadResearchItem(){
+  const x=selectedResearchItem();if(!x)return;
+  loadCompResearch();
+  loadResearchPhotosFromItem();
+  researchCurrentTitle.value=x.title||"";
+  researchProposedTitle.value=x.title||"";
+  researchCurrentDescription.value=x.description||"";
+  researchProposedDescription.value=x.description||"";
+  listingResearchSummary.innerHTML=`Brand: <b>${escapeHtml(x.brand||"Unknown")}</b> • Category: <b>${escapeHtml(x.category||"Other")}</b> • Current price: <b>${moneyFmt(x.ask)}</b> • Acquisition cost: <b>${x.acquisitionCostVerified?moneyFmt(x.itemCost):"Unknown / optional"}</b>`;
+}
+function researchQuery(x){
+  return [x.brand&&x.brand!=="Unknown"?x.brand:"",x.title,x.category].filter(Boolean).join(" ").replace(/\s+/g," ").trim();
+}
+function openResearchSource(kind){
+  const x=selectedResearchItem();if(!x)return;const q=encodeURIComponent(researchQuery(x));
+  const img=(x.photos||[])[0]||"";
+  let url="";
+  if(kind==="ebaySold")url=`https://www.ebay.com/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1`;
+  else if(kind==="ebayActive")url=`https://www.ebay.com/sch/i.html?_nkw=${q}`;
+  else if(kind==="google")url=`https://www.google.com/search?q=${encodeURIComponent(researchQuery(x)+" price sold")}`;
+  else if(kind==="lens")url=img?`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(img)}`:`https://lens.google.com/`;
+  else if(kind==="bing")url=img?`https://www.bing.com/images/searchbyimage/upload?cbir=sbi&imgurl=${encodeURIComponent(img)}`:`https://www.bing.com/visualsearch`;
+  else if(kind==="worthpoint")url=`https://www.worthpoint.com/inventory/search?query=${q}`;
+  if(url)window.open(url,"_blank");
+}
+function blankComp(){return{source:"eBay",type:"sold",price:"",match:"Good",notes:""}}
+function loadCompResearch(){
+  const x=selectedResearchItem();if(!x)return;
+  const r=state.compResearch?.[x.id]||{comps:[blankComp()]};
+  renderCompRows(r.comps?.length?r.comps:[blankComp()]);
+  compConfidence.value=r.confidence||"Low";compRecommended.value=r.recommended??"";compRationale.value=r.rationale||"";
+  calculateCompMetrics();
+  compResearchStatus.textContent=r.savedAt?`Saved ${new Date(r.savedAt).toLocaleString()}`:"No saved comp research for this item.";
+}
+function renderCompRows(rows){
+  compRows.innerHTML=rows.map((c,i)=>`<tr>
+    <td><select data-c="${i}" data-f="source"><option ${c.source==="eBay"?"selected":""}>eBay</option><option ${c.source==="Google"?"selected":""}>Google</option><option ${c.source==="WorthPoint"?"selected":""}>WorthPoint</option><option ${c.source==="Other"?"selected":""}>Other</option></select></td>
+    <td><select data-c="${i}" data-f="type"><option value="sold" ${c.type==="sold"?"selected":""}>Sold</option><option value="active" ${c.type==="active"?"selected":""}>Active</option><option value="valuation" ${c.type==="valuation"?"selected":""}>Valuation</option></select></td>
+    <td><input data-c="${i}" data-f="price" type="number" step="0.01" value="${escapeHtml(c.price)}"></td>
+    <td><select data-c="${i}" data-f="match"><option ${c.match==="Excellent"?"selected":""}>Excellent</option><option ${c.match==="Good"?"selected":""}>Good</option><option ${c.match==="Fair"?"selected":""}>Fair</option></select></td>
+    <td><input data-c="${i}" data-f="notes" value="${escapeHtml(c.notes||"")}"></td>
+    <td><button class="btn secondary" onclick="removeCompRow(${i})">×</button></td></tr>`).join("");
+  [...compRows.querySelectorAll("input,select")].forEach(el=>el.onchange=calculateCompMetrics);
+}
+function readCompRows(){
+  const map={};
+  [...compRows.querySelectorAll("[data-c]")].forEach(el=>{const i=Number(el.dataset.c);map[i]=map[i]||blankComp();map[i][el.dataset.f]=el.value});
+  return Object.values(map).filter(c=>Number(c.price)>0);
+}
+function addCompRow(){const rows=readCompRows();rows.push(blankComp());renderCompRows(rows);calculateCompMetrics()}
+function removeCompRow(i){let rows=readCompRows();rows.splice(i,1);if(!rows.length)rows=[blankComp()];renderCompRows(rows);calculateCompMetrics()}
+function median(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2}
+function calculateCompMetrics(){
+  const comps=readCompRows(),prices=comps.map(c=>Number(c.price)).filter(x=>x>0),sold=comps.filter(c=>c.type==="sold").map(c=>Number(c.price)).filter(x=>x>0);
+  const used=sold.length>=3?sold:prices;
+  const low=used.length?Math.min(...used):0,high=used.length?Math.max(...used):0,med=median(used);
+  const excellent=comps.filter(c=>c.match==="Excellent").length,good=comps.filter(c=>c.match==="Good").length;
+  let conf="Low";if(sold.length>=5&&(excellent+good)>=4)conf="High";else if(used.length>=3)conf="Medium";
+  compConfidence.value=conf;
+  if(!Number(compRecommended.value)&&med)compRecommended.value=(Math.round(med*100)/100).toFixed(2);
+  compMetrics.innerHTML=`<div><span class="small muted">Relevant comps</span><b>${comps.length}</b></div><div><span class="small muted">Sold comps</span><b>${sold.length}</b></div><div><span class="small muted">Low</span><b>${moneyFmt(low)}</b></div><div><span class="small muted">Median</span><b>${moneyFmt(med)}</b></div><div><span class="small muted">High</span><b>${moneyFmt(high)}</b></div>`;
+  return{comps,low,med,high,soldCount:sold.length,confidence:conf};
+}
+function saveCompResearch(){
+  const x=selectedResearchItem();if(!x)return;const m=calculateCompMetrics();
+  if(!m.comps.length){toastMsg("Add at least one relevant comp.");return}
+  state.compResearch[x.id]={...m,recommended:Number(compRecommended.value||m.med||0),confidence:compConfidence.value,rationale:compRationale.value.trim(),savedAt:new Date().toISOString()};
+  state.marketResearch[x.id]={low:m.low,high:m.high,compCount:m.comps.length,confidence:compConfidence.value,notes:compRationale.value.trim(),savedAt:new Date().toISOString()};
+  persist();loadCompResearch();toastMsg("Comparable research saved.");
+}
+function createCompPriceProposal(){
+  const x=selectedResearchItem();if(!x)return;const r=state.compResearch?.[x.id];
+  if(!r){toastMsg("Save comparable research first.");return}
+  const proposed=Number(r.recommended||r.med||0);if(!proposed){toastMsg("Enter a recommended price.");return}
+  const reason=`${r.comps.length} relevant comps (${r.soldCount} sold). Market range ${moneyFmt(r.low)}–${moneyFmt(r.high)}, median ${moneyFmt(r.med)}, ${r.confidence} confidence. ${r.rationale||""}`.trim();
+  state.optimizationQueue.unshift(proposal(x,"market-price",r.confidence==="High"?"high":"medium","Price",x.ask,proposed,reason));
+  persist();renderOptimizationQueue();toastMsg("Market-backed price proposal added.");
+}
+function loadResearchPhotosFromItem(){
+  const x=selectedResearchItem();if(!x)return;const urls=(x.photos||[]).filter(Boolean);
+  researchPhotoGallery.innerHTML="";researchPhotoScore.innerHTML="";researchPhotoResult.textContent="";
+  researchPhotoStatus.textContent=urls.length?`${urls.length} Vendoo photo URL(s) found. Loading…`:"No Vendoo photo URLs found. Use fallback upload.";
+  let loaded=0,failed=0;
+  urls.slice(0,12).forEach((url,i)=>{
+    const wrap=document.createElement("div");wrap.className="photo-thumb";
+    const img=document.createElement("img");img.crossOrigin="anonymous";img.alt=`Photo ${i+1}`;
+    const cap=document.createElement("div");cap.className="small muted";cap.textContent=`Photo ${i+1} • loading`;
+    img.onload=()=>{loaded++;cap.textContent=`Photo ${i+1} • ${img.naturalWidth}×${img.naturalHeight}`;researchPhotoStatus.textContent=`${loaded} loaded • ${failed} failed`};
+    img.onerror=()=>{failed++;cap.textContent=`Photo ${i+1} • failed`;researchPhotoStatus.textContent=`${loaded} loaded • ${failed} failed`};
+    img.src=url;wrap.appendChild(img);wrap.appendChild(cap);researchPhotoGallery.appendChild(wrap);
+  });
+}
+function loadResearchFallback(e){
+  const files=[...e.target.files];researchPhotoGallery.innerHTML="";
+  files.forEach((f,i)=>{const url=URL.createObjectURL(f);researchPhotoGallery.innerHTML+=`<div class="photo-thumb"><img src="${url}" alt="Fallback ${i+1}"><div class="small muted">${escapeHtml(f.name)}</div></div>`});
+  researchPhotoStatus.textContent=`${files.length} fallback photo(s) loaded.`;
+}
+async function analyzeResearchPhotos(){
+  const x=selectedResearchItem();if(!x)return;const imgs=[...researchPhotoGallery.querySelectorAll("img")].filter(img=>img.complete&&img.naturalWidth>0);
+  if(!imgs.length){researchPhotoResult.innerHTML='<span class="photo-bad">No loadable photos available.</span>';return}
+  let res=[],tainted=0;
+  for(let i=0;i<imgs.length;i++){const img=imgs[i],s=await canvasStats(img);if(s?.tainted){tainted++;res.push({width:img.naturalWidth,height:img.naturalHeight,tainted:true})}else res.push({width:img.naturalWidth,height:img.naturalHeight,...s})}
+  const usable=res.filter(r=>!r.tainted),avgBrightness=usable.length?usable.reduce((a,b)=>a+b.brightness,0)/usable.length:0,avgWhite=usable.length?usable.reduce((a,b)=>a+b.whitePct,0)/usable.length:0;
+  const lowRes=res.filter(r=>Math.min(r.width,r.height)<700).length,countScore=Math.min(100,Math.round(imgs.length/8*100)),resScore=Math.max(0,100-Math.round(lowRes/Math.max(1,imgs.length)*100)),lightScore=usable.length?Math.max(0,100-Math.min(100,Math.abs(avgBrightness-205)/1.5)):0,bgScore=usable.length?Math.min(100,Math.round(avgWhite*1.4)):0,overall=Math.round((countScore+resScore+lightScore+bgScore)/4);
+  state.photoResearch[x.id]={count:imgs.length,tainted,lowRes,avgBrightness,avgWhite,countScore,resScore,lightScore,bgScore,overall,analyzedAt:new Date().toISOString()};persist();
+  researchPhotoScore.innerHTML=`<div><span class="small muted">Overall</span><b>${overall}/100</b></div><div><span class="small muted">Count</span><b>${imgs.length}</b></div><div><span class="small muted">Resolution</span><b>${resScore}/100</b></div><div><span class="small muted">Background</span><b>${usable.length?bgScore+"/100":"N/A"}</b></div>`;
+  researchPhotoResult.textContent=`Technical photo analysis complete. ${lowRes} low-resolution image(s). ${tainted} image(s) blocked from pixel analysis by browser security.`;
+}
+function createResearchPhotoRecommendations(){
+  const x=selectedResearchItem();if(!x)return;const r=state.photoResearch?.[x.id];if(!r){toastMsg("Analyze photos first.");return}
+  const recs=[];
+  if(r.count<4)recs.push(["photo-count","high","Photos",`${r.count} photo(s)`,"Add more photos","Too few images to show full condition/details."]);
+  else if(r.count<8)recs.push(["photo-count","medium","Photos",`${r.count} photo(s)`,"Add detail/label/condition photos","More coverage may reduce buyer uncertainty."]);
+  if(r.lowRes>0)recs.push(["photo-resolution","medium","Photos",`${r.lowRes} low-resolution photo(s)`,"Replace low-resolution images","Sharper images improve detail inspection."]);
+  if(r.avgBrightness&&r.avgBrightness<145)recs.push(["photo-lighting","medium","Photos",`Brightness ${Math.round(r.avgBrightness)}`,"Retake dark images","Dark images can hide condition and color."]);
+  if(r.avgWhite<35&&r.avgWhite>0)recs.push(["photo-background","low","Cover photo",`White-background ${Math.round(r.avgWhite)}%`,"Review cover for cleaner background","A cleaner cover can improve item visibility."]);
+  if(!recs.length)recs.push(["photo-review","low","Photos",`Technical score ${r.overall}/100`,"Keep current photos; manually verify missing-angle needs","No major technical issue detected."]);
+  recs.forEach(([type,priority,field,current,proposed,reason])=>state.optimizationQueue.unshift(proposal(x,type,priority,field,current,proposed,reason)));
+  persist();renderOptimizationQueue();toastMsg(`${recs.length} photo recommendation(s) added.`);
+}
+function generateListingResearchDraft(){
+  const x=selectedResearchItem();if(!x)return;
+  researchProposedTitle.value=titleCandidate(x);
+  researchProposedDescription.value=descriptionCandidate(x);
+}
+function createListingResearchProposals(){
+  const x=selectedResearchItem();if(!x)return;let n=0;
+  if(researchProposedTitle.value.trim()&&researchProposedTitle.value.trim()!==x.title){state.optimizationQueue.unshift(proposal(x,"title","medium","Title",x.title,researchProposedTitle.value.trim(),"Listing research draft."));n++}
+  if(researchProposedDescription.value.trim()&&researchProposedDescription.value.trim()!==(x.description||"")){state.optimizationQueue.unshift(proposal(x,"description","medium","Description",x.description||"(blank)",researchProposedDescription.value.trim(),"Listing research draft."));n++}
+  persist();renderOptimizationQueue();toastMsg(`${n} listing proposal(s) added.`);
+}
+
+function renderPhotoItemOptions(){
+  const sel=document.getElementById("photoItemSelect");if(!sel)return;
+  const items=state.inventory.filter(x=>x.status!=="Sold");
+  const prev=sel.value;
+  sel.innerHTML=items.map(x=>`<option value="${escapeHtml(x.id)}">${escapeHtml(x.title)}</option>`).join("");
+  if(prev&&items.some(x=>x.id===prev))sel.value=prev;
+  loadPhotoItem();
+}
+function selectedPhotoItem(){return state.inventory.find(x=>x.id===document.getElementById("photoItemSelect")?.value)}
+function loadPhotoItem(){
+  const x=selectedPhotoItem();if(!x)return;
+  const urls=(x.photos||[]).filter(Boolean);
+  photoStatus.textContent=urls.length?`${urls.length} Vendoo photo URL(s) found for this item. Loading…`:"No Vendoo image URLs found. Use fallback upload if needed.";
+  photoGallery.innerHTML="";
+  photoScore.innerHTML="";
+  photoAnalysisResult.textContent="";
+  if(!urls.length)return;
+  let loaded=0,failed=0;
+  urls.slice(0,12).forEach((url,i)=>{
+    const wrap=document.createElement("div");wrap.className="photo-thumb";
+    const img=document.createElement("img");img.crossOrigin="anonymous";img.alt=`Photo ${i+1}`;
+    const cap=document.createElement("div");cap.className="small muted";cap.textContent=`Photo ${i+1} • loading`;
+    img.onload=()=>{loaded++;cap.textContent=`Photo ${i+1} • ${img.naturalWidth}×${img.naturalHeight}`;photoStatus.textContent=`${loaded} loaded • ${failed} failed • ${urls.length} total URL(s)`};
+    img.onerror=()=>{failed++;cap.textContent=`Photo ${i+1} • could not load`;photoStatus.textContent=`${loaded} loaded • ${failed} failed • ${urls.length} total URL(s)`};
+    img.src=url;wrap.appendChild(img);wrap.appendChild(cap);photoGallery.appendChild(wrap);
+  });
+}
+function loadFallbackPhotos(e){
+  const files=[...e.target.files];if(!files.length)return;
+  const x=selectedPhotoItem();if(!x)return;
+  x._fallbackPhotos=files.map(f=>({name:f.name,url:URL.createObjectURL(f)}));
+  photoGallery.innerHTML="";
+  x._fallbackPhotos.forEach((p,i)=>{
+    photoGallery.innerHTML+=`<div class="photo-thumb"><img src="${p.url}" alt="Fallback ${i+1}"><div class="small muted">Uploaded ${escapeHtml(p.name)}</div></div>`;
+  });
+  photoStatus.textContent=`${files.length} uploaded fallback photo(s) ready for analysis.`;
+}
+async function canvasStats(img){
+  const c=document.createElement("canvas"),ctx=c.getContext("2d",{willReadFrequently:true});
+  const w=Math.min(256,img.naturalWidth||img.width),h=Math.min(256,img.naturalHeight||img.height);
+  if(!w||!h)return null;c.width=w;c.height=h;
+  try{
+    ctx.drawImage(img,0,0,w,h);const d=ctx.getImageData(0,0,w,h).data;
+    let sum=0,sum2=0,white=0,n=d.length/4;
+    for(let i=0;i<d.length;i+=4){
+      const lum=.2126*d[i]+.7152*d[i+1]+.0722*d[i+2];sum+=lum;sum2+=lum*lum;
+      if(d[i]>235&&d[i+1]>235&&d[i+2]>235)white++;
+    }
+    const mean=sum/n,variance=Math.max(0,sum2/n-mean*mean);
+    return{brightness:mean,contrast:Math.sqrt(variance),whitePct:white/n*100};
+  }catch(e){return{tainted:true}}
+}
+async function analyzeCurrentPhotos(){
+  const x=selectedPhotoItem();if(!x)return;
+  const imgs=[...photoGallery.querySelectorAll("img")].filter(img=>img.complete&&img.naturalWidth>0);
+  if(!imgs.length){photoAnalysisResult.innerHTML='<span class="photo-bad">No loadable photos available to analyze.</span>';return}
+  let res=[],tainted=0;
+  for(let i=0;i<imgs.length;i++){
+    const img=imgs[i],s=await canvasStats(img);
+    if(s?.tainted){tainted++;res.push({i,width:img.naturalWidth,height:img.naturalHeight,tainted:true});continue}
+    res.push({i,width:img.naturalWidth,height:img.naturalHeight,...s});
+  }
+  const usable=res.filter(r=>!r.tainted);
+  const avgBrightness=usable.length?usable.reduce((a,b)=>a+b.brightness,0)/usable.length:0;
+  const avgContrast=usable.length?usable.reduce((a,b)=>a+b.contrast,0)/usable.length:0;
+  const avgWhite=usable.length?usable.reduce((a,b)=>a+b.whitePct,0)/usable.length:0;
+  const lowRes=res.filter(r=>Math.min(r.width,r.height)<700).length;
+  const countScore=Math.min(100,Math.round(imgs.length/8*100));
+  const resScore=Math.max(0,100-Math.round(lowRes/Math.max(1,imgs.length)*100));
+  const lightScore=usable.length?Math.max(0,100-Math.min(100,Math.abs(avgBrightness-205)/1.5)):0;
+  const bgScore=usable.length?Math.min(100,Math.round(avgWhite*1.4)):0;
+  const overall=Math.round((countScore+resScore+lightScore+bgScore)/4);
+  state.photoResearch[x.id]={count:imgs.length,loaded:imgs.length,tainted,lowRes,avgBrightness,avgContrast,avgWhite,countScore,resScore,lightScore,bgScore,overall,analyzedAt:new Date().toISOString()};
+  persist();
+  photoScore.innerHTML=`<div><span class="small muted">Overall</span><b>${overall}/100</b></div><div><span class="small muted">Photo count</span><b>${imgs.length}</b></div><div><span class="small muted">Resolution</span><b>${resScore}/100</b></div><div><span class="small muted">Background</span><b>${usable.length?bgScore+"/100":"N/A"}</b></div>`;
+  photoAnalysisResult.innerHTML=`Technical analysis complete. ${lowRes?`${lowRes} low-resolution photo(s). `:""}${tainted?`${tainted} image(s) loaded but browser security prevented pixel-level analysis. `:""}Average brightness ${usable.length?Math.round(avgBrightness):"N/A"}.`;
+}
+function createPhotoRecommendations(){
+  const x=selectedPhotoItem();if(!x)return;const r=state.photoResearch?.[x.id];
+  if(!r){toastMsg("Analyze current photos first.");return}
+  const recs=[];
+  if(r.count<4)recs.push(["photo-count","high","Photos",`${r.count} photo(s)`,"Add more photos","Too few views to show condition, details, scale, and labels."]);
+  else if(r.count<8)recs.push(["photo-count","medium","Photos",`${r.count} photo(s)`,"Consider adding detail/label/condition photos","More coverage can reduce buyer uncertainty."]);
+  if(r.lowRes>0)recs.push(["photo-resolution","medium","Photos",`${r.lowRes} low-resolution photo(s)`,"Replace low-resolution images","Sharper images improve zoom/detail inspection."]);
+  if(r.avgBrightness&&r.avgBrightness<145)recs.push(["photo-lighting","medium","Photos",`Brightness ${Math.round(r.avgBrightness)}`,"Retake dark photos with brighter, even lighting","Dark images can hide condition and color."]);
+  if(r.avgBrightness&&r.avgBrightness>245)recs.push(["photo-lighting","medium","Photos",`Brightness ${Math.round(r.avgBrightness)}`,"Reduce overexposure","Very bright images may wash out color/detail."]);
+  if(r.avgWhite<35&&r.avgWhite>0)recs.push(["photo-background","low","Cover photo",`White-background coverage ${Math.round(r.avgWhite)}%`,"Review cover for cleaner/simple background","A cleaner cover can improve item visibility in search grids."]);
+  if(!recs.length)recs.push(["photo-review","low","Photos",`Technical score ${r.overall}/100`,"Keep current photos; manually verify missing-angle needs","No major technical photo issue was detected."]);
+  recs.forEach(([type,priority,field,current,proposed,reason])=>state.optimizationQueue.unshift(proposal(x,type,priority,field,current,proposed,reason)));
+  persist();renderOptimizationQueue();toastMsg(`${recs.length} photo recommendation(s) created.`);
+}
 
 function renderMarketItemOptions(){
   const sel=document.getElementById("marketItemSelect");if(!sel)return;
