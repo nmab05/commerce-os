@@ -87,12 +87,33 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 .phase-card b{display:block;font-size:18px;margin-top:4px}
 .phase-pass{background:#f2fff5;border-color:#9dd7aa}.phase-warn{background:#fffbea;border-color:#e7cc72}
 @media(max-width:700px){.phase-grid{grid-template-columns:1fr}}
+
+.action-score{font-size:28px;font-weight:800}.action-card{border:1px solid #d8dee9;border-radius:14px;padding:14px;margin:10px 0;background:#fff}
+.action-card.high{border-left:6px solid #b42318}.action-card.medium{border-left:6px solid #d97706}.action-card.low{border-left:6px solid #2563eb}
+.metric-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.metric-strip>div{border:1px solid #d8dee9;border-radius:12px;padding:10px}
+@media(max-width:700px){.metric-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
-<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.9 • PHASE 3 COMPLETE • Vendoo-centered integration</div></header>
+<header><div class="brand">Commerce OS</div><div class="sub">Prototype v2.0 • PHASE 4 • Action Queue + measurement automation</div></header>
 <main>
 <section id="Today" class="page active">
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <h3>Phase 4 — Daily Action Queue</h3>
+        <div class="small muted">Turns the latest Vendoo inventory + Phase 3 research rules into a ranked daily worklist. Routine recommendations are generated automatically; consequential changes still require your approval.</div>
+      </div>
+      <span class="pill good">AUTOMATION ACTIVE</span>
+    </div>
+    <div id="phase4Metrics" class="metric-strip" style="margin:12px 0"></div>
+    <div class="row">
+      <button class="btn primary" onclick="buildDailyActionQueue()">Build / refresh queue</button>
+      <button class="btn secondary" onclick="showPage('Inventory',[...document.querySelectorAll('.bottom-nav button')].find(b=>b.textContent.includes('Inventory')))">Research selected item</button>
+    </div>
+    <div id="phase4Queue"></div>
+  </div>
+  <div class="spacer"></div>
   <div class="grid g4">
     <div class="card"><div class="small muted">Priority actions</div><div class="metric" id="mActions">0</div></div>
     <div class="card"><div class="small muted">Active inventory</div><div class="metric" id="mInventory">0</div></div>
@@ -292,6 +313,13 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
     <div id="phase3CheckResult" class="small" style="margin-top:8px"></div>
   </div>
   <div class="spacer"></div>
+  <div class="card">
+    <h3>Phase 4 — Measurement Feedback Loop</h3>
+    <div class="small muted">Record what happened after an approved action. Commerce OS keeps the recommendation, action, and realized result together so later rules can learn from evidence instead of assumptions.</div>
+    <div id="measurementSummary" class="metric-strip" style="margin:12px 0"></div>
+    <button class="btn secondary" onclick="exportPhase4Learning()">Export learning log</button>
+  </div>
+  <div class="spacer"></div>
   <div class="card"><h3>Rules</h3><label>Minimum expected sourcing profit</label><input id="ruleMinProfit" type="number"><label>High-value threshold</label><input id="ruleHighValue" type="number"><label>Max routine markdown %</label><input id="ruleMarkdown" type="number"><label>Daily ad test cap</label><input id="ruleAdCap" type="number"><label><input id="ruleLikeness" type="checkbox" style="width:auto"> Enable likeness / voice features</label><button class="btn" onclick="saveRules()">Save rules</button></div>
   <div class="spacer"></div>
   <div class="card">
@@ -353,7 +381,7 @@ function loadState(){
   if(!state) state=JSON.parse(JSON.stringify(DEFAULT_STATE));
   if(!state.photoInbox)state.photoInbox=[];
   if(!state.activityLog)state.activityLog=[];
-  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};if(!state.integration)state.integration={apiUrl:"https://commerce-os-backend-1.onrender.com"};if(!state.vendooBridge)state.vendooBridge={lastImportAt:"",lastFileName:"",lastCount:0};if(!state.optimizationQueue)state.optimizationQueue=[];if(!state.marketResearch)state.marketResearch={};if(!state.executionBatches)state.executionBatches=[];if(!state.photoResearch)state.photoResearch={};if(!state.compResearch)state.compResearch={};if(!state.phase3)state.phase3={backendConnected:false,backendCheckedAt:"",vendooImported:false,researchUsed:false,executionBuilt:false};if(!state.integration.apiUrl)state.integration.apiUrl="https://commerce-os-backend-1.onrender.com";state.schemaVersion="1.3.1";
+  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};if(!state.integration)state.integration={apiUrl:"https://commerce-os-backend-1.onrender.com"};if(!state.vendooBridge)state.vendooBridge={lastImportAt:"",lastFileName:"",lastCount:0};if(!state.optimizationQueue)state.optimizationQueue=[];if(!state.marketResearch)state.marketResearch={};if(!state.executionBatches)state.executionBatches=[];if(!state.photoResearch)state.photoResearch={};if(!state.compResearch)state.compResearch={};if(!state.phase3)state.phase3={backendConnected:false,backendCheckedAt:"",vendooImported:false,researchUsed:false,executionBuilt:false};if(!state.phase4)state.phase4={lastQueueBuild:"",queueRuns:0,measurements:[],automationLevel:"approval-first"};if(!state.actionQueue)state.actionQueue=[];if(!state.integration.apiUrl)state.integration.apiUrl="https://commerce-os-backend-1.onrender.com";state.schemaVersion="1.3.1";
   state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(x.acquisitionCostVerified===undefined)x.acquisitionCostVerified=false;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(!x.vendooMeta)x.vendooMeta={};if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});
 }
 function persist(){try{localStorage.setItem("commerceState",JSON.stringify(state))}catch(e){}}
@@ -364,7 +392,7 @@ function init(){
 function buildNav(){const n=document.getElementById("nav");n.innerHTML="";pages.forEach((p,i)=>{const b=document.createElement("button");b.innerHTML=`<span class="ico">${icons[p]}</span>${p}`;b.className=i===0?"active":"";b.onclick=()=>showPage(p,b);n.appendChild(b);})}
 function showPage(p,b){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(p).classList.add("active");document.querySelectorAll(".bottom-nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");window.scrollTo(0,0);}
 function actionScore(x){let v=(Number(x.ask||0)/3)+(Number(x.daysListed||0)/20);if(x.season==="Halloween")v+=18;if((x.status||"").includes("Research"))v-=15;if(x.status==="Sold")v=-999;return Math.round(v)}
-function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();renderVendooStatus();renderOptimizationQueue();renderMarketItemOptions();renderPhotoItemOptions();renderResearchItemOptions();renderExecutionQueue();renderPhase3Status();}
+function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();renderVendooStatus();renderOptimizationQueue();renderMarketItemOptions();renderPhotoItemOptions();renderResearchItemOptions();renderExecutionQueue();renderPhase3Status();renderPhase4();}
 function renderMetrics(){const active=state.inventory.filter(x=>x.status!=="Sold");mInventory.textContent=active.length;mHigh.textContent=active.filter(x=>Number(x.ask)>=state.settings.highValueThreshold).length;mActions.textContent=active.length;mChannels.textContent=new Set(active.flatMap(x=>x.marketplaces||[])).size;}
 function renderQueues(){const list=state.inventory.filter(x=>x.status!=="Sold").sort((a,b)=>actionScore(b)-actionScore(a));const h=list.map((x,i)=>`<div class="action"><b>${i+1}. ${x.title}</b><div class="small muted">${x.recommendedAction||"Review"} • ${x.recommendedRange||""}</div></div>`).join("");todayQueue.innerHTML=h;sellQueue.innerHTML=h;}
 
@@ -470,7 +498,7 @@ async function importVendooCSV(e){
   try{
     const raw=parseCSV(await f.text(),","),items=raw.map((r,i)=>adaptVendoo(r,i)).filter(x=>x.title&&x.title!=="Untitled");
     if(!items.length)throw new Error("No recognizable Vendoo rows found.");
-    state.vendooBridge={lastImportAt:new Date().toISOString(),lastFileName:f.name,lastCount:items.length};state.phase3.vendooImported=true;
+    state.vendooBridge={lastImportAt:new Date().toISOString(),lastFileName:f.name,lastCount:items.length};state.phase3.vendooImported=true;setTimeout(()=>{try{buildDailyActionQueue()}catch(e){}},0);
     analyzeVendooItems(items);buildRecon(items);persist();renderVendooStatus();
     importMsg.textContent=`Loaded ${items.length} Vendoo item(s) and ${state.optimizationQueue.length} optimization recommendation(s).`;
     toastMsg(`${items.length} Vendoo rows analyzed.`);
@@ -967,6 +995,93 @@ async function runPhase3SelfCheck(){
   tests.push({name:"Execution batches",ok:typeof buildExecutionBatches==="function"});
   persist();renderPhase3Status();
   phase3CheckResult.innerHTML=tests.map(t=>`${t.ok?"✅":"⚠️"} ${t.name}${t.detail?": "+escapeHtml(t.detail):""}`).join("<br>");
+}
+
+
+function p4Num(v){const n=Number(v);return Number.isFinite(n)?n:0}
+function p4Age(x){
+  const raw=x.ageDays??x.age??x.daysOld??x["Age"]??0;
+  const n=parseInt(raw,10); return Number.isFinite(n)?n:0;
+}
+function p4Price(x){return p4Num(x.pricing??x.price??x.listPrice??x["Price"]??0)}
+function p4Title(x){return x.title||x.Title||x.name||"Untitled item"}
+function p4Status(x){return String(x.status||x.Status||"").toLowerCase()}
+function p4Markets(x){return String(x.marketplaces||x.Markets||x["Marketplace"]||"")}
+function p4ScoreItem(x,idx){
+  const age=p4Age(x), price=p4Price(x), markets=p4Markets(x).split(",").filter(Boolean).length;
+  let score=0,reasons=[],action="Review listing";
+  if(age>=365){score+=35;reasons.push(`${age} days old`);action="Refresh / relist"}
+  if(age>=730){score+=15}
+  if(price>=75){score+=20;reasons.push(`$${price.toFixed(0)} asking price`)}
+  if(price>=150){score+=10}
+  if(markets<=1){score+=15;reasons.push("limited marketplace coverage");action=age>=365?"Refresh + crosslist":"Review crosslisting"}
+  if(!x.brand||String(x.brand).toLowerCase()==="unknown"){score+=8;reasons.push("brand/identity needs review")}
+  const research=state.compResearch?.[x.id];
+  if(!research && price>=75){score+=12;reasons.push("market evidence not saved");action="Research market before change"}
+  const photo=state.photoResearch?.[x.id];
+  if(photo && photo.overall<70){score+=10;reasons.push(`photo score ${photo.overall}`);action="Improve photos + listing"}
+  const high=price>=150||score>=70;
+  return {id:x.id||`row-${idx}`,title:p4Title(x),score:Math.min(100,score),priority:high?"high":score>=45?"medium":"low",action,reasons,price,age,status:"pending",sourceIndex:idx,createdAt:new Date().toISOString()};
+}
+function buildDailyActionQueue(){
+  const items=(state.inventory||state.items||[]);
+  if(!items.length){toastMsg("Import Vendoo inventory first.");return}
+  state.actionQueue=items
+    .filter(x=>!["sold","archived"].includes(p4Status(x)))
+    .map(p4ScoreItem)
+    .sort((a,b)=>b.score-a.score);
+  state.phase4.lastQueueBuild=new Date().toISOString();
+  state.phase4.queueRuns=(state.phase4.queueRuns||0)+1;
+  persist();renderPhase4();toastMsg(`${state.actionQueue.length} actions ranked.`);
+}
+function renderPhase4(){
+  const q=state.actionQueue||[], m=document.getElementById("phase4Metrics"), box=document.getElementById("phase4Queue");
+  if(m)m.innerHTML=[
+    ["Ranked",q.length],["High priority",q.filter(x=>x.priority==="high").length],
+    ["Awaiting approval",q.filter(x=>x.status==="pending").length],["Measured",(state.phase4.measurements||[]).length]
+  ].map(([a,b])=>`<div><span class="small muted">${a}</span><div class="action-score">${b}</div></div>`).join("");
+  if(box)box.innerHTML=q.length?q.slice(0,30).map((a,i)=>`<div class="action-card ${a.priority}">
+    <div class="row" style="justify-content:space-between"><b>${escapeHtml(a.title)}</b><span class="pill ${a.priority==="high"?"warn":""}">${a.score}/100</span></div>
+    <div class="small muted">${escapeHtml(a.reasons.join(" • ")||"Routine review")}</div>
+    <div style="margin:8px 0"><b>Recommended:</b> ${escapeHtml(a.action)}</div>
+    <div class="row">
+      <button class="btn secondary" onclick="p4OpenItem(${a.sourceIndex})">Open item</button>
+      <button class="btn primary" onclick="p4Approve('${a.id}')">Approve action</button>
+      <button class="btn secondary" onclick="p4Dismiss('${a.id}')">Dismiss</button>
+    </div></div>`).join(""):`<div class="empty">Import Vendoo inventory, then build the daily queue.</div>`;
+  renderMeasurementSummary();
+}
+function p4OpenItem(idx){
+  const x=(state.inventory||state.items||[])[idx]; if(!x)return;
+  state.researchItemId=x.id;persist();
+  showPage("Inventory",[...document.querySelectorAll(".bottom-nav button")].find(b=>b.textContent.includes("Inventory")));
+  setTimeout(()=>{renderResearchItemOptions(); if(typeof loadResearchItem==="function")loadResearchItem()},50);
+}
+function p4Approve(id){
+  const a=(state.actionQueue||[]).find(x=>x.id===id);if(!a)return;
+  a.status="approved";a.approvedAt=new Date().toISOString();
+  const item=(state.inventory||state.items||[])[a.sourceIndex];
+  if(item && typeof addOptimizationProposal==="function"){
+    try{addOptimizationProposal(item,"action","Action",a.action,a.reasons.join("; "),a.priority==="high"?"high":"medium")}catch(e){}
+  }
+  persist();renderPhase4();toastMsg("Action approved and handed to the approval/execution workflow.");
+}
+function p4Dismiss(id){const a=(state.actionQueue||[]).find(x=>x.id===id);if(a){a.status="dismissed";a.dismissedAt=new Date().toISOString();persist();renderPhase4()}}
+function recordPhase4Outcome(actionId,outcome,realizedPrice,notes){
+  state.phase4.measurements.push({actionId,outcome,realizedPrice:p4Num(realizedPrice),notes:notes||"",recordedAt:new Date().toISOString()});
+  persist();renderPhase4();
+}
+function renderMeasurementSummary(){
+  const el=document.getElementById("measurementSummary");if(!el)return;
+  const rows=state.phase4.measurements||[], sold=rows.filter(x=>x.outcome==="sold");
+  const revenue=sold.reduce((s,x)=>s+p4Num(x.realizedPrice),0);
+  el.innerHTML=[["Outcomes",rows.length],["Sold",sold.length],["Realized $",`$${revenue.toFixed(0)}`],["Queue runs",state.phase4.queueRuns||0]]
+    .map(([a,b])=>`<div><span class="small muted">${a}</span><div class="action-score">${b}</div></div>`).join("");
+}
+function exportPhase4Learning(){
+  const payload={exportedAt:new Date().toISOString(),release:"Commerce OS v2.0 Phase 4",queue:state.actionQueue||[],measurements:state.phase4.measurements||[],rules:state.rules||{}};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="commerce-os-phase4-learning.json";a.click();URL.revokeObjectURL(a.href);
 }
 
 document.addEventListener("DOMContentLoaded",init);
