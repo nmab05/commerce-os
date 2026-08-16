@@ -57,10 +57,18 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 .connector-row{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;align-items:center;border-bottom:1px solid #e5e7eb;padding:8px 0}
 .connector-row:last-child{border:0}
 @media(max-width:700px){.connector-row{grid-template-columns:1fr 1fr}.connector-row .connector-msg{grid-column:1/-1}}
-.optim-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}.optim-summary>div{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafbff}.optim-summary b{font-size:22px;display:block}.optim-card{border:1px solid var(--line);border-radius:12px;padding:12px;margin:9px 0;background:#fff}.optim-card.approved{border-color:#86c995;background:#f6fff7}.optim-card.rejected{opacity:.58}.optim-current,.optim-proposed{padding:9px;border-radius:8px;margin-top:6px;white-space:pre-wrap;word-break:break-word}.optim-current{background:#f4f5f7}.optim-proposed{background:#eef8ef}.priority-high{color:#b42318;font-weight:800}.priority-medium{color:#8a5a00;font-weight:800}.priority-low{color:#3559a6;font-weight:800}@media(max-width:700px){.optim-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>
+.optim-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}.optim-summary>div{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafbff}.optim-summary b{font-size:22px;display:block}.optim-card{border:1px solid var(--line);border-radius:12px;padding:12px;margin:9px 0;background:#fff}.optim-card.approved{border-color:#86c995;background:#f6fff7}.optim-card.rejected{opacity:.58}.optim-current,.optim-proposed{padding:9px;border-radius:8px;margin-top:6px;white-space:pre-wrap;word-break:break-word}.optim-current{background:#f4f5f7}.optim-proposed{background:#eef8ef}.priority-high{color:#b42318;font-weight:800}.priority-medium{color:#8a5a00;font-weight:800}.priority-low{color:#3559a6;font-weight:800}@media(max-width:700px){.optim-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.market-box{border:1px solid #d8dee9;border-radius:12px;padding:10px;background:#fbfcff;margin-top:8px}
+.market-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.market-grid>div{background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:8px}
+.market-grid span{display:block;font-size:10px;color:#667085;text-transform:uppercase}
+.exec-card{border:1px solid #d8dee9;border-radius:12px;padding:10px;margin:8px 0;background:#fff}
+.exec-card.executed{background:#fffbea}.exec-card.verified{background:#f2fff5;border-color:#9dd7aa}
+@media(max-width:700px){.market-grid{grid-template-columns:1fr 1fr}}
+</style>
 </head>
 <body>
-<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.5 • Vendoo optimization queue • approval-first automation</div></header>
+<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.6 • market intelligence + Vendoo execution • approval-first</div></header>
 <main>
 <section id="Today" class="page active">
   <div class="grid g4">
@@ -111,7 +119,42 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
     <div class="row"><select id="optimFilter" style="width:auto" onchange="renderOptimizationQueue()"><option value="pending">Pending</option><option value="approved">Approved</option><option value="all">All</option><option value="high">High priority</option></select><button class="btn secondary" onclick="clearOptimizationQueue()">Clear queue</button></div>
     <div id="optimizationQueue"></div>
   </div>
-  <div class="card">
+  <div class="card" style="margin-bottom:12px">
+  <h3>Market Intelligence</h3>
+  <div class="small muted">Commerce OS will not invent market value. Price recommendations require recorded market evidence. Acquisition cost is optional and is used only for profitability after you verify it.</div>
+  <div id="marketResearchPanel" class="market-box">
+    <label>Select item for market research</label>
+    <select id="marketItemSelect" onchange="loadMarketResearchItem()"></select>
+    <div id="marketItemSummary" class="small muted" style="margin:7px 0"></div>
+    <div class="row">
+      <button class="btn secondary" onclick="openMarketSearch('ebay')">Open eBay sold search</button>
+      <button class="btn secondary" onclick="openMarketSearch('google')">Open web search</button>
+    </div>
+    <div class="grid g2" style="margin-top:8px">
+      <div><label>Observed market low</label><input id="marketLow" type="number" min="0" step="0.01"></div>
+      <div><label>Observed market high</label><input id="marketHigh" type="number" min="0" step="0.01"></div>
+      <div><label>Comparable sales reviewed</label><input id="marketCompCount" type="number" min="0" step="1"></div>
+      <div><label>Confidence</label><select id="marketConfidence"><option>Low</option><option>Medium</option><option>High</option></select></div>
+    </div>
+    <label>Market evidence / notes</label><textarea id="marketNotes" rows="3" placeholder="Example: 8 sold comps reviewed; most sold between $45 and $60."></textarea>
+    <div class="row">
+      <button class="btn good" onclick="saveMarketResearch()">Save market analysis</button>
+      <button class="btn secondary" onclick="createMarketPriceProposal()">Create price proposal</button>
+    </div>
+    <div id="marketResearchResult" class="small" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:12px">
+  <div class="row" style="justify-content:space-between">
+    <div><h3>Vendoo Execution Queue</h3><div class="small muted">Approved Commerce OS changes are grouped into batches of up to 240 for execution in Vendoo.</div></div>
+    <button class="btn" onclick="buildExecutionBatches()">Build batches</button>
+  </div>
+  <div id="executionSummary" class="small muted"></div>
+  <div id="executionQueue"></div>
+</div>
+
+<div class="card">
     <div class="row" style="justify-content:space-between"><h3>Existing inventory</h3>
       <div class="row">
         <select id="importSource" style="width:auto"><option value="Generic">Import source</option><option>eBay</option><option>Poshmark</option><option>Mercari</option><option>Etsy</option><option>Depop</option><option>Vinted</option><option>Whatnot</option><option>Shopify</option><option>Vendoo</option><option value="Generic">Generic file</option></select>
@@ -132,7 +175,7 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
       <div id="reconcileResults"></div><div class="row recon-sticky"><button class="btn good" onclick="applyReconciliation()">Apply approved changes</button><button class="btn secondary" onclick="cancelReconciliation()">Cancel</button><span id="reconDecisionSummary" class="small muted"></span></div>
     </div>
     <div id="addItemPanel" style="display:none;margin-top:10px"><h3>Add inventory item</h3>
-      <div class="grid g2"><div><label>Title</label><input id="newTitle"></div><div><label>Brand</label><input id="newBrand"></div><div><label>Category</label><input id="newCategory"></div><div><label>Pricing</label><input id="newAsk" type="number"></div><div><label>Item Cost</label><input id="newCost" type="number"></div><div><label>Quantity</label><input id="newQty" value="1"></div><div><label>Status</label><select id="newStatus"><option>Active</option><option>Unlisted</option><option>Research / Hold</option><option>Sold</option></select></div><div><label>Photos</label><input id="newPhotos" type="file" accept="image/*" capture="environment" multiple></div></div>
+      <div class="grid g2"><div><label>Title</label><input id="newTitle"></div><div><label>Brand</label><input id="newBrand"></div><div><label>Category</label><input id="newCategory"></div><div><label>Pricing</label><input id="newAsk" type="number"></div><div><label>Acquisition Cost (optional)</label><input id="newCost" type="number"></div><div><label><input id="newCostVerified" type="checkbox" style="width:auto"> Cost is known/verified</label></div><div><label>Quantity</label><input id="newQty" value="1"></div><div><label>Status</label><select id="newStatus"><option>Active</option><option>Unlisted</option><option>Research / Hold</option><option>Sold</option></select></div><div><label>Photos</label><input id="newPhotos" type="file" accept="image/*" capture="environment" multiple></div></div>
       <label>Marketplaces</label><input id="newMarkets" placeholder="eBay, Poshmark"><label>Recommended action</label><input id="newAction" value="Review"><label>Notes</label><textarea id="newNotes"></textarea>
       <div class="row"><button class="btn good" onclick="addItem()">Save item</button><button class="btn secondary" onclick="hideAddItem()">Cancel</button></div>
     </div>
@@ -194,7 +237,7 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 <nav class="bottom-nav" id="nav"></nav>
 
 <div id="itemModal" class="modal"><div class="inner"><div class="row" style="justify-content:space-between"><div><div class="small muted">ITEM DETAILS</div><h3 id="modalTitle"></h3></div><button class="btn secondary" onclick="closeItem()">Close</button></div><div id="modalGallery"></div><div id="modalSummary"></div><div id="modalActions" class="row" style="margin-top:12px"><button class="btn" onclick="editCurrentItem()">Edit item</button><button class="btn warn" onclick="markCurrentSold()">Mark as sold</button></div>
-<div id="editPanel" style="display:none"><div class="grid g2"><div><label>Title</label><input id="editTitle"></div><div><label>Brand</label><input id="editBrand"></div><div><label>Category</label><input id="editCategory"></div><div><label>Pricing</label><input id="editPricing" type="number"></div><div><label>Item Cost</label><input id="editCost" type="number"></div><div><label>Quantity</label><input id="editQty"></div><div><label>Status</label><select id="editStatus"><option>Active</option><option>Unlisted</option><option>Research / Hold</option><option>Sold</option></select></div><div><label>Season</label><input id="editSeason"></div></div><label>Marketplaces</label><input id="editMarkets"><label>Marketplace IDs</label><textarea id="editIds"></textarea><label>Recommended action</label><input id="editAction"><label>Notes</label><textarea id="editNotes"></textarea><label>Add photos</label><input id="editPhotos" type="file" accept="image/*" capture="environment" multiple><div class="row"><button class="btn good" onclick="saveCurrentItem()">Save changes</button><button class="btn secondary" onclick="cancelEdit()">Cancel edit</button></div></div></div></div>
+<div id="editPanel" style="display:none"><div class="grid g2"><div><label>Title</label><input id="editTitle"></div><div><label>Brand</label><input id="editBrand"></div><div><label>Category</label><input id="editCategory"></div><div><label>Pricing</label><input id="editPricing" type="number"></div><div><label>Acquisition Cost (optional)</label><input id="editCost" type="number"></div><div><label><input id="editCostVerified" type="checkbox" style="width:auto"> I know/verified this acquisition cost</label></div><div><label>Quantity</label><input id="editQty"></div><div><label>Status</label><select id="editStatus"><option>Active</option><option>Unlisted</option><option>Research / Hold</option><option>Sold</option></select></div><div><label>Season</label><input id="editSeason"></div></div><label>Marketplaces</label><input id="editMarkets"><label>Marketplace IDs</label><textarea id="editIds"></textarea><label>Recommended action</label><input id="editAction"><label>Notes</label><textarea id="editNotes"></textarea><label>Add photos</label><input id="editPhotos" type="file" accept="image/*" capture="environment" multiple><div class="row"><button class="btn good" onclick="saveCurrentItem()">Save changes</button><button class="btn secondary" onclick="cancelEdit()">Cancel edit</button></div></div></div></div>
 
 <script>
 const DEFAULT_STATE={"settings": {"minimumExpectedProfit": 40, "highValueThreshold": 175, "maxRoutineMarkdownPct": 20, "adSpendDailyCap": 25, "likenessVoiceOptIn": false, "channelFees": {"eBay": 15, "Poshmark": 20, "Mercari": 10, "Etsy": 10, "Depop": 10, "Vinted": 5, "Whatnot": 12, "Shopify": 3}}, "inventory": [{"id": "P3-001", "title": "Loungefly Disney Minnie Mouse Pink Ghost Glow-in-the-Dark Mini Backpack", "brand": "Loungefly", "category": "Bags & Accessories", "status": "Active", "ask": 225, "itemCost": 0, "daysListed": 730, "season": "Halloween", "marketplaces": ["eBay", "Poshmark"], "recommendedAction": "Seasonal reprice + listing refresh", "recommendedRange": "$89–$119", "confidence": "Medium", "quantity": "1+", "notes": "", "photos": [], "marketplaceIds": {}, "sourceRecords": []}, {"id": "P3-002", "title": "Farm Rio x Alberto Pitta Blue Print Knot Linen Blend Midi Dress — Size S", "brand": "Farm Rio", "category": "Women's Clothing", "status": "Active", "ask": 298, "itemCost": 0, "daysListed": 780, "season": "Evergreen", "marketplaces": ["eBay", "Poshmark"], "recommendedAction": "Validate market + optimize title/category", "recommendedRange": "$179–$225", "confidence": "Medium", "quantity": "1", "notes": "", "photos": [], "marketplaceIds": {}, "sourceRecords": []}, {"id": "P3-004", "title": "Lilly Pulitzer NWT Aston Maxi Set — Amalfi Blue — Size M", "brand": "Lilly Pulitzer", "category": "Women's Clothing", "status": "Active", "ask": 298, "itemCost": 0, "daysListed": 754, "season": "Resort/Spring-Summer", "marketplaces": ["eBay", "Poshmark"], "recommendedAction": "Validate comps + high-value optimization", "recommendedRange": "$149–$189", "confidence": "High", "quantity": "1", "notes": "", "photos": [], "marketplaceIds": {}, "sourceRecords": []}, {"id": "P3-005", "title": "Farm Rio Tropical Tapestry Long-Sleeve Minidress — Size S", "brand": "Farm Rio", "category": "Women's Clothing", "status": "Active", "ask": 198, "itemCost": 0, "daysListed": 775, "season": "Evergreen", "marketplaces": ["eBay", "Poshmark"], "recommendedAction": "Reprice first + searchable title", "recommendedRange": "$139–$159", "confidence": "High", "quantity": "1", "notes": "", "photos": [], "marketplaceIds": {}, "sourceRecords": []}, {"id": "P3-012", "title": "Vintage Makeup Compact", "brand": "Unknown", "category": "Vintage", "status": "Research / Hold", "ask": 335, "itemCost": 0, "daysListed": 855, "season": "Evergreen", "marketplaces": ["eBay", "Poshmark", "Mercari"], "recommendedAction": "Identify precisely + validate sold comps", "recommendedRange": "Hold pending research", "confidence": "Low", "quantity": "1", "notes": "", "photos": [], "marketplaceIds": {}, "sourceRecords": []}], "photoInbox": [], "activityLog": [], "money": {"revenue": 0, "profit": 0, "minutes": 0, "outcomes": []}};
@@ -211,8 +254,8 @@ function loadState(){
   if(!state) state=JSON.parse(JSON.stringify(DEFAULT_STATE));
   if(!state.photoInbox)state.photoInbox=[];
   if(!state.activityLog)state.activityLog=[];
-  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};if(!state.integration)state.integration={apiUrl:"https://commerce-os-backend-1.onrender.com"};if(!state.vendooBridge)state.vendooBridge={lastImportAt:"",lastFileName:"",lastCount:0};if(!state.optimizationQueue)state.optimizationQueue=[];if(!state.integration.apiUrl)state.integration.apiUrl="https://commerce-os-backend-1.onrender.com";state.schemaVersion="1.3.1";
-  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(!x.vendooMeta)x.vendooMeta={};if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});
+  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};if(!state.integration)state.integration={apiUrl:"https://commerce-os-backend-1.onrender.com"};if(!state.vendooBridge)state.vendooBridge={lastImportAt:"",lastFileName:"",lastCount:0};if(!state.optimizationQueue)state.optimizationQueue=[];if(!state.marketResearch)state.marketResearch={};if(!state.executionBatches)state.executionBatches=[];if(!state.integration.apiUrl)state.integration.apiUrl="https://commerce-os-backend-1.onrender.com";state.schemaVersion="1.3.1";
+  state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(x.acquisitionCostVerified===undefined)x.acquisitionCostVerified=false;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(!x.vendooMeta)x.vendooMeta={};if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});
 }
 function persist(){try{localStorage.setItem("commerceState",JSON.stringify(state))}catch(e){}}
 function log(action,item=null,details=""){state.activityLog.unshift({at:new Date().toISOString(),action,itemId:item?.id||"",title:item?.title||"",details});state.activityLog=state.activityLog.slice(0,250);}
@@ -222,12 +265,12 @@ function init(){
 function buildNav(){const n=document.getElementById("nav");n.innerHTML="";pages.forEach((p,i)=>{const b=document.createElement("button");b.innerHTML=`<span class="ico">${icons[p]}</span>${p}`;b.className=i===0?"active":"";b.onclick=()=>showPage(p,b);n.appendChild(b);})}
 function showPage(p,b){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(p).classList.add("active");document.querySelectorAll(".bottom-nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");window.scrollTo(0,0);}
 function actionScore(x){let v=(Number(x.ask||0)/3)+(Number(x.daysListed||0)/20);if(x.season==="Halloween")v+=18;if((x.status||"").includes("Research"))v-=15;if(x.status==="Sold")v=-999;return Math.round(v)}
-function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();renderVendooStatus();renderOptimizationQueue();}
+function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();renderVendooStatus();renderOptimizationQueue();renderMarketItemOptions();renderExecutionQueue();}
 function renderMetrics(){const active=state.inventory.filter(x=>x.status!=="Sold");mInventory.textContent=active.length;mHigh.textContent=active.filter(x=>Number(x.ask)>=state.settings.highValueThreshold).length;mActions.textContent=active.length;mChannels.textContent=new Set(active.flatMap(x=>x.marketplaces||[])).size;}
 function renderQueues(){const list=state.inventory.filter(x=>x.status!=="Sold").sort((a,b)=>actionScore(b)-actionScore(a));const h=list.map((x,i)=>`<div class="action"><b>${i+1}. ${x.title}</b><div class="small muted">${x.recommendedAction||"Review"} • ${x.recommendedRange||""}</div></div>`).join("");todayQueue.innerHTML=h;sellQueue.innerHTML=h;}
 
 function visibleInventory(){const q=(inventorySearch.value||"").toLowerCase();const st=inventoryStatusFilter.value;let a=state.inventory.filter(x=>(st==="All"||x.status===st)&&([x.title,x.brand,x.category,(x.marketplaces||[]).join(" "),x.notes].join(" ").toLowerCase().includes(q)));switch(inventorySort.value){case"oldest":a.sort((a,b)=>b.daysListed-a.daysListed);break;case"newest":a.sort((a,b)=>a.daysListed-b.daysListed);break;case"priceHigh":a.sort((a,b)=>b.ask-a.ask);break;case"priceLow":a.sort((a,b)=>a.ask-b.ask);break;case"costHigh":a.sort((a,b)=>b.itemCost-a.itemCost);break;case"title":a.sort((a,b)=>a.title.localeCompare(b.title));break;default:a.sort((a,b)=>actionScore(b)-actionScore(a));}return a;}
-function renderInventory(){const rows=visibleInventory();inventoryViewSummary.textContent=`Showing ${rows.length} of ${state.inventory.length} item(s)`;inventoryCards.innerHTML=rows.length?rows.map(x=>`<div class="inventory-card ${x.status==="Sold"?"sold":""}"><div class="row" style="justify-content:space-between"><label style="margin:0"><input type="checkbox" style="width:auto" ${x.selected?"checked":""} onchange="selectItem('${x.id}',this.checked)"> Select</label>${x.status==="Sold"?'<span class="pill sold">SOLD</span>':""}</div>${x.photos?.length?`<img class="inventory-photo" src="${x.photos[0]}">`:""}<div class="inventory-title">${x.title}</div><div class="row"><span class="pill">${x.status}</span><span class="pill">${x.brand}</span><span class="pill">${x.quantity} qty</span></div><div class="kv"><div><span>Pricing</span><b>${moneyFmt(x.ask)}</b></div><div><span>Item Cost</span><b>${moneyFmt(x.itemCost)}</b></div><div><span>Age</span><b>${x.daysListed}d</b></div></div><div class="small muted">${(x.marketplaces||[]).join(" • ")}</div><div class="small"><b>Gross spread:</b> ${moneyFmt(Number(x.ask)-Number(x.itemCost))}</div><div class="small" style="margin-top:6px"><b>Recommended:</b> ${x.recommendedAction||"Review"}</div><button class="btn secondary" style="width:100%;margin-top:8px" onclick="openItem('${x.id}')">Open item</button></div>`).join(""):`<div class="empty-state">No inventory items match this view.</div>`;renderBulk();}
+function renderInventory(){const rows=visibleInventory();inventoryViewSummary.textContent=`Showing ${rows.length} of ${state.inventory.length} item(s)`;inventoryCards.innerHTML=rows.length?rows.map(x=>`<div class="inventory-card ${x.status==="Sold"?"sold":""}"><div class="row" style="justify-content:space-between"><label style="margin:0"><input type="checkbox" style="width:auto" ${x.selected?"checked":""} onchange="selectItem('${x.id}',this.checked)"> Select</label>${x.status==="Sold"?'<span class="pill sold">SOLD</span>':""}</div>${x.photos?.length?`<img class="inventory-photo" src="${x.photos[0]}">`:""}<div class="inventory-title">${x.title}</div><div class="row"><span class="pill">${x.status}</span><span class="pill">${x.brand}</span><span class="pill">${x.quantity} qty</span></div><div class="kv"><div><span>Pricing</span><b>${moneyFmt(x.ask)}</b></div><div><span>Acq. Cost</span><b>${moneyFmt(x.itemCost)}</b></div><div><span>Age</span><b>${x.daysListed}d</b></div></div><div class="small muted">${(x.marketplaces||[]).join(" • ")}</div><div class="small"><b>Gross spread:</b> ${moneyFmt(Number(x.ask)-Number(x.itemCost))}</div><div class="small" style="margin-top:6px"><b>Recommended:</b> ${x.recommendedAction||"Review"}</div><button class="btn secondary" style="width:100%;margin-top:8px" onclick="openItem('${x.id}')">Open item</button></div>`).join(""):`<div class="empty-state">No inventory items match this view.</div>`;renderBulk();}
 function moneyFmt(v){return "$"+Number(v||0).toFixed(2)}
 function selectItem(id,c){const x=state.inventory.find(i=>i.id===id);x.selected=c;persist();renderBulk();}
 function renderBulk(){const n=state.inventory.filter(x=>x.selected).length;bulkCount.textContent=n+" selected";bulkBar.classList.toggle("active",n>0)}
@@ -238,13 +281,13 @@ function bulkSold(){const a=state.inventory.filter(x=>x.selected);if(!a.length||
 function showAddItem(){addItemPanel.style.display="block"} function hideAddItem(){addItemPanel.style.display="none"}
 function nextId(){return "P-"+String(Math.max(0,...state.inventory.map(x=>parseInt(String(x.id).replace(/\D/g,""))||0))+1).padStart(4,"0")}
 function fileData(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)})}
-async function addItem(){if(!requireText(newTitle,"Enter an item title."))return;if(!nonNegativeNumber(newAsk,"Pricing must be 0 or greater."))return;if(!nonNegativeNumber(newCost,"Item Cost must be 0 or greater."))return;const photos=[];for(const f of [...newPhotos.files])photos.push(await fileData(f));const x={id:nextId(),title:newTitle.value.trim(),brand:newBrand.value.trim()||"Unknown",category:newCategory.value.trim()||"Other",status:newStatus.value,ask:Number(newAsk.value||0),itemCost:Number(newCost.value||0),daysListed:0,season:"Evergreen",marketplaces:newMarkets.value.split(",").map(s=>s.trim()).filter(Boolean),recommendedAction:newAction.value.trim()||"Review",recommendedRange:"",confidence:"Low",quantity:newQty.value||"1",notes:newNotes.value.trim(),photos,marketplaceIds:{},sourceRecords:[],selected:false};state.inventory.unshift(x);log("Created item",x);persist();renderAll();hideAddItem();toastMsg("Item added.");}
+async function addItem(){if(!requireText(newTitle,"Enter an item title."))return;if(!nonNegativeNumber(newAsk,"Pricing must be 0 or greater."))return;if(!nonNegativeNumber(newCost,"Item Cost must be 0 or greater."))return;const photos=[];for(const f of [...newPhotos.files])photos.push(await fileData(f));const x={id:nextId(),title:newTitle.value.trim(),brand:newBrand.value.trim()||"Unknown",category:newCategory.value.trim()||"Other",status:newStatus.value,ask:Number(newAsk.value||0),itemCost:Number(newCost.value||0),acquisitionCostVerified:!!newCostVerified.checked,daysListed:0,season:"Evergreen",marketplaces:newMarkets.value.split(",").map(s=>s.trim()).filter(Boolean),recommendedAction:newAction.value.trim()||"Review",recommendedRange:"",confidence:"Low",quantity:newQty.value||"1",notes:newNotes.value.trim(),photos,marketplaceIds:{},sourceRecords:[],selected:false};state.inventory.unshift(x);log("Created item",x);persist();renderAll();hideAddItem();toastMsg("Item added.");}
 
-function openItem(id){const x=state.inventory.find(i=>i.id===id);if(!x)return;currentItemId=id;modalTitle.textContent=x.title;modalGallery.innerHTML=x.photos?.length?`<div class="gallery">${x.photos.map(p=>`<img src="${p}">`).join("")}</div>`:"";modalSummary.innerHTML=`<div class="summary-grid"><div class="summary-cell"><span>Pricing</span><b>${moneyFmt(x.ask)}</b></div><div class="summary-cell"><span>Item Cost</span><b>${moneyFmt(x.itemCost)}</b></div><div class="summary-cell"><span>Status</span><b>${x.status}</b></div><div class="summary-cell"><span>Quantity</span><b>${x.quantity}</b></div><div class="summary-cell"><span>Age</span><b>${x.daysListed} days</b></div><div class="summary-cell"><span>Gross Spread</span><b>${moneyFmt(Number(x.ask)-Number(x.itemCost))}</b></div></div><p><b>Marketplaces:</b> ${(x.marketplaces||[]).join(", ")||"—"}</p><p><b>Recommended:</b> ${x.recommendedAction||"—"}</p><p><b>Notes:</b> ${x.notes||"—"}</p>`;modalActions.style.display="flex";editPanel.style.display="none";itemModal.classList.add("open");}
+function openItem(id){const x=state.inventory.find(i=>i.id===id);if(!x)return;currentItemId=id;modalTitle.textContent=x.title;modalGallery.innerHTML=x.photos?.length?`<div class="gallery">${x.photos.map(p=>`<img src="${p}">`).join("")}</div>`:"";modalSummary.innerHTML=`<div class="summary-grid"><div class="summary-cell"><span>Pricing</span><b>${moneyFmt(x.ask)}</b></div><div class="summary-cell"><span>Acq. Cost</span><b>${moneyFmt(x.itemCost)}</b></div><div class="summary-cell"><span>Status</span><b>${x.status}</b></div><div class="summary-cell"><span>Quantity</span><b>${x.quantity}</b></div><div class="summary-cell"><span>Age</span><b>${x.daysListed} days</b></div><div class="summary-cell"><span>Gross Spread</span><b>${moneyFmt(Number(x.ask)-Number(x.itemCost))}</b></div></div><p><b>Marketplaces:</b> ${(x.marketplaces||[]).join(", ")||"—"}</p><p><b>Recommended:</b> ${x.recommendedAction||"—"}</p><p><b>Notes:</b> ${x.notes||"—"}</p>`;modalActions.style.display="flex";editPanel.style.display="none";itemModal.classList.add("open");}
 function closeItem(){itemModal.classList.remove("open");currentItemId=null}
-function editCurrentItem(){const x=state.inventory.find(i=>i.id===currentItemId);editTitle.value=x.title;editBrand.value=x.brand;editCategory.value=x.category;editPricing.value=x.ask;editCost.value=x.itemCost;editQty.value=x.quantity;editStatus.value=x.status;editSeason.value=x.season;editMarkets.value=(x.marketplaces||[]).join(", ");editIds.value=Object.entries(x.marketplaceIds||{}).map(([k,v])=>k+": "+v).join("\n");editAction.value=x.recommendedAction||"";editNotes.value=x.notes||"";editPhotos.value="";modalActions.style.display="none";editPanel.style.display="block";}
+function editCurrentItem(){const x=state.inventory.find(i=>i.id===currentItemId);editTitle.value=x.title;editBrand.value=x.brand;editCategory.value=x.category;editPricing.value=x.ask;editCost.value=x.itemCost;editCostVerified.checked=!!x.acquisitionCostVerified;editQty.value=x.quantity;editStatus.value=x.status;editSeason.value=x.season;editMarkets.value=(x.marketplaces||[]).join(", ");editIds.value=Object.entries(x.marketplaceIds||{}).map(([k,v])=>k+": "+v).join("\n");editAction.value=x.recommendedAction||"";editNotes.value=x.notes||"";editPhotos.value="";modalActions.style.display="none";editPanel.style.display="block";}
 function cancelEdit(){modalActions.style.display="flex";editPanel.style.display="none"}
-async function saveCurrentItem(){const x=state.inventory.find(i=>i.id===currentItemId);if(!requireText(editTitle,"Title is required."))return;if(!nonNegativeNumber(editPricing,"Pricing must be 0 or greater."))return;if(!nonNegativeNumber(editCost,"Item Cost must be 0 or greater."))return;x.title=editTitle.value.trim();x.brand=editBrand.value.trim()||"Unknown";x.category=editCategory.value.trim()||"Other";x.ask=Number(editPricing.value||0);x.itemCost=Number(editCost.value||0);x.quantity=editQty.value||"1";x.status=editStatus.value;x.season=editSeason.value.trim()||"Evergreen";x.marketplaces=editMarkets.value.split(",").map(s=>s.trim()).filter(Boolean);x.marketplaceIds={};editIds.value.split(/\r?\n/).forEach(l=>{const i=l.indexOf(":");if(i>0)x.marketplaceIds[l.slice(0,i).trim()]=l.slice(i+1).trim()});x.recommendedAction=editAction.value.trim()||"Review";x.notes=editNotes.value.trim();for(const f of [...editPhotos.files])x.photos.push(await fileData(f));log("Edited item",x);persist();renderAll();openItem(x.id);toastMsg("Item saved.");}
+async function saveCurrentItem(){const x=state.inventory.find(i=>i.id===currentItemId);if(!requireText(editTitle,"Title is required."))return;if(!nonNegativeNumber(editPricing,"Pricing must be 0 or greater."))return;if(!nonNegativeNumber(editCost,"Item Cost must be 0 or greater."))return;x.title=editTitle.value.trim();x.brand=editBrand.value.trim()||"Unknown";x.category=editCategory.value.trim()||"Other";x.ask=Number(editPricing.value||0);x.itemCost=Number(editCost.value||0);x.acquisitionCostVerified=!!editCostVerified.checked;x.quantity=editQty.value||"1";x.status=editStatus.value;x.season=editSeason.value.trim()||"Evergreen";x.marketplaces=editMarkets.value.split(",").map(s=>s.trim()).filter(Boolean);x.marketplaceIds={};editIds.value.split(/\r?\n/).forEach(l=>{const i=l.indexOf(":");if(i>0)x.marketplaceIds[l.slice(0,i).trim()]=l.slice(i+1).trim()});x.recommendedAction=editAction.value.trim()||"Review";x.notes=editNotes.value.trim();for(const f of [...editPhotos.files])x.photos.push(await fileData(f));log("Edited item",x);persist();renderAll();openItem(x.id);toastMsg("Item saved.");}
 function markCurrentSold(){const x=state.inventory.find(i=>i.id===currentItemId);if(confirm(`Mark "${x.title}" as sold?`)){x.status="Sold";log("Marked sold",x);persist();renderAll();openItem(x.id)}}
 
 async function addPhotosToInbox(e){for(const f of [...e.target.files])state.photoInbox.unshift({id:"IMG-"+Date.now()+Math.random(),imageData:await fileData(f),createdAt:new Date().toISOString(),status:"Unmatched",linkedItemId:""});persist();renderPhotoInbox();e.target.value=""}
@@ -290,7 +333,7 @@ function adaptVendoo(raw,i){
   return {id:sku||`VENDOO-${i+1}`,vendooRow:i+1,title,description,brand:exactVendoo(raw,"Brand")||"Unknown",
     condition:exactVendoo(raw,"Condition"),primaryColor:exactVendoo(raw,"Primary Color"),secondaryColor:exactVendoo(raw,"Secondary Color"),
     tags:exactVendoo(raw,"Tags"),category:exactVendoo(raw,"Category")||"Other",status,ask:cleanNum(exactVendoo(raw,"Price")),
-    itemCost:cleanNum(exactVendoo(raw,"Cost of Goods")),daysListed:daysSinceDate(listedDate),listedDate,soldDate:exactVendoo(raw,"Sold Date"),
+    itemCost:cleanNum(exactVendoo(raw,"Cost of Goods")),acquisitionCostVerified:false,daysListed:daysSinceDate(listedDate),listedDate,soldDate:exactVendoo(raw,"Sold Date"),
     soldPlatform:exactVendoo(raw,"Sold Platform"),priceSold:cleanNum(exactVendoo(raw,"Price Sold")),
     marketplaceFees:cleanNum(exactVendoo(raw,"Marketplace Fees")),shippingExpenses:cleanNum(exactVendoo(raw,"Shipping Expenses")),
     quantity:String(exactVendoo(raw,"Quantity Left")||"0"),quantitySold:String(exactVendoo(raw,"Quantity Sold")||"0"),
@@ -311,14 +354,14 @@ function generateOptimizations(x){
   const q=[];
   if(x.status==="Active"&&x.daysListed>=365)q.push(proposal(x,"refresh","high","Action","Keep live",`Refresh/relist ${x.daysListed}d-old listing`,"Active listing is over one year old."));
   else if(x.status==="Active"&&x.daysListed>=180)q.push(proposal(x,"refresh","medium","Action","Keep live",`Review/relist ${x.daysListed}d-old listing`,"Older active listing may benefit from a refresh."));
+  if(x.status==="Active"&&!state.marketResearch?.[x.id])q.push(proposal(x,"market-research","medium","Pricing Evidence","No market analysis","Research current sold/comparable market","Price changes require current market evidence before Commerce OS can propose a value."));
   if(x.status==="Active"&&x.marketplaces.length<2)q.push(proposal(x,"coverage","medium","Action",x.marketplaces.join(", ")||"No platform","Evaluate additional marketplace coverage","Active on fewer than two marketplaces."));
   if(x.status==="Unlisted")q.push(proposal(x,"draft","medium","Action","Draft","Complete draft and publish when ready","Vendoo record is still a draft."));
   if(!x.vendooMeta?.sku)q.push(proposal(x,"sku","low","SKU","Missing","Assign SKU","SKU improves reconciliation and future bulk operations."));
-  if(x.status!=="Sold"&&x.itemCost>0&&x.ask>0&&x.ask<=x.itemCost)q.push(proposal(x,"margin","high","Price",x.ask,Math.ceil(x.itemCost*1.2),`Current price is at or below recorded cost (${moneyFmt(x.itemCost)}). Proposed price is a review candidate only.`));
   if(x.status!=="Sold"&&x.title.length>80)q.push(proposal(x,"title","medium","Title",x.title,x.title.slice(0,80).replace(/\s+\S*$/,"").trim(),"Title exceeds 80 characters."));
   else if(x.status!=="Sold"&&x.title.length<45){const p=titleCandidate(x);if(p!==x.title)q.push(proposal(x,"title","low","Title",x.title,p,"Short title may be missing searchable brand/category/color terms."))}
   if(x.status!=="Sold"&&(!x.description||norm(x.description)===norm(x.title)||x.description.length<80))q.push(proposal(x,"description","medium","Description",x.description||"(blank)",descriptionCandidate(x),"Description is blank, very short, or duplicates the title."));
-  if(x.status==="Sold"&&x.priceSold>0){const net=x.priceSold-x.marketplaceFees-x.shippingExpenses-x.itemCost;if(net<0)q.push(proposal(x,"sold-margin","high","Action",`Sold ${moneyFmt(x.priceSold)} / net ${moneyFmt(net)}`,"Review loss-making sale","Recorded sold economics indicate a negative net result."))}
+  if(x.status==="Sold"&&x.priceSold>0&&x.acquisitionCostVerified){const net=x.priceSold-x.marketplaceFees-x.shippingExpenses-x.itemCost;if(net<0)q.push(proposal(x,"sold-margin","high","Action",`Sold ${moneyFmt(x.priceSold)} / net ${moneyFmt(net)}`,"Review loss-making sale","Recorded sold economics indicate a negative net result."))}
   return q;
 }
 function analyzeVendooItems(items){state.optimizationQueue=items.flatMap(generateOptimizations);persist();renderOptimizationQueue()}
@@ -357,6 +400,86 @@ function exportApprovedOptimizations(){
 }
 function exportVendooActionPlan(){exportApprovedOptimizations()}
 
+
+function renderMarketItemOptions(){
+  const sel=document.getElementById("marketItemSelect");if(!sel)return;
+  const active=state.inventory.filter(x=>x.status!=="Sold");
+  const prev=sel.value;
+  sel.innerHTML=active.map(x=>`<option value="${escapeHtml(x.id)}">${escapeHtml(x.title)}</option>`).join("");
+  if(prev&&active.some(x=>x.id===prev))sel.value=prev;
+  loadMarketResearchItem();
+}
+function selectedMarketItem(){return state.inventory.find(x=>x.id===document.getElementById("marketItemSelect")?.value)}
+function loadMarketResearchItem(){
+  const x=selectedMarketItem();if(!x)return;
+  const r=state.marketResearch?.[x.id]||{};
+  marketLow.value=r.low??"";marketHigh.value=r.high??"";marketCompCount.value=r.compCount??"";marketConfidence.value=r.confidence||"Low";marketNotes.value=r.notes||"";
+  marketItemSummary.innerHTML=`Current price: <b>${moneyFmt(x.ask)}</b> • Acquisition cost: <b>${x.acquisitionCostVerified?moneyFmt(x.itemCost):"Unknown / unverified"}</b>`;
+  marketResearchResult.innerHTML=r.savedAt?`Saved ${new Date(r.savedAt).toLocaleString()} • Market range ${moneyFmt(r.low)}–${moneyFmt(r.high)} • ${r.compCount||0} comps • ${r.confidence} confidence`:"No market analysis saved for this item.";
+}
+function openMarketSearch(kind){
+  const x=selectedMarketItem();if(!x)return;
+  const q=encodeURIComponent(x.title);
+  if(kind==="ebay")window.open(`https://www.ebay.com/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1`,"_blank");
+  else window.open(`https://www.google.com/search?q=${encodeURIComponent(x.title+" sold price comps")}`,"_blank");
+}
+function saveMarketResearch(){
+  const x=selectedMarketItem();if(!x)return;
+  const low=Number(marketLow.value),high=Number(marketHigh.value),compCount=Number(marketCompCount.value||0);
+  if(!Number.isFinite(low)||!Number.isFinite(high)||low<0||high<=0||high<low){toastMsg("Enter a valid market low and high.");return}
+  state.marketResearch[x.id]={low,high,compCount,confidence:marketConfidence.value,notes:marketNotes.value.trim(),savedAt:new Date().toISOString()};
+  persist();loadMarketResearchItem();toastMsg("Market analysis saved.");
+}
+function createMarketPriceProposal(){
+  const x=selectedMarketItem();if(!x)return;
+  const r=state.marketResearch?.[x.id];
+  if(!r){toastMsg("Save market analysis first.");return}
+  let suggested=(Number(r.low)+Number(r.high))/2;
+  if(x.daysListed>=365)suggested=Number(r.low)+(Number(r.high)-Number(r.low))*0.4;
+  suggested=Math.round(suggested*100)/100;
+  const reason=`Based on recorded market range ${moneyFmt(r.low)}–${moneyFmt(r.high)}, ${r.compCount||0} comparable sales reviewed, ${r.confidence} confidence. Acquisition cost did not determine market value.`;
+  const p=proposal(x,"market-price",r.confidence==="High"?"high":"medium","Price",x.ask,suggested,reason);
+  state.optimizationQueue.unshift(p);persist();renderOptimizationQueue();toastMsg("Market-backed price proposal created.");
+}
+function buildExecutionBatches(){
+  const approved=(state.optimizationQueue||[]).filter(x=>x.status==="approved");
+  if(!approved.length){toastMsg("No approved optimizations to batch.");return}
+  state.executionBatches=[];
+  for(let i=0;i<approved.length;i+=240){
+    state.executionBatches.push({
+      id:`BATCH-${Date.now()}-${Math.floor(i/240)+1}`,
+      createdAt:new Date().toISOString(),
+      status:"pending",
+      items:approved.slice(i,i+240).map(x=>({...x}))
+    });
+  }
+  persist();renderExecutionQueue();toastMsg(`${state.executionBatches.length} Vendoo execution batch(es) created.`);
+}
+function setBatchStatus(id,status){
+  const b=state.executionBatches.find(x=>x.id===id);if(!b)return;b.status=status;b.updatedAt=new Date().toISOString();persist();renderExecutionQueue();
+}
+function exportExecutionBatch(id){
+  const b=state.executionBatches.find(x=>x.id===id);if(!b)return;
+  const head=["Vendoo Row","SKU / Item ID","Title","Field","Current Value","Approved Value","Optimization Type","Priority","Reason"];
+  const csv=[head,...b.items.map(o=>[o.row,o.itemId,o.title,o.field,o.current,o.proposed,o.type,o.priority,o.reason])].map(r=>r.map(csvEscape).join(",")).join("\n");
+  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=`commerce_os_${b.id}.csv`;a.click();
+}
+function renderExecutionQueue(){
+  const box=document.getElementById("executionQueue"),summary=document.getElementById("executionSummary");if(!box||!summary)return;
+  const all=state.executionBatches||[],pending=all.filter(x=>x.status==="pending").length,executed=all.filter(x=>x.status==="executed").length,verified=all.filter(x=>x.status==="verified").length;
+  summary.textContent=`${all.length} batch(es) • ${pending} pending • ${executed} executed • ${verified} verified`;
+  box.innerHTML=all.length?all.map(b=>`<div class="exec-card ${b.status}">
+    <div class="row" style="justify-content:space-between"><b>${b.id}</b><span class="pill">${b.status.toUpperCase()}</span></div>
+    <div class="small muted">${b.items.length} approved change(s) • created ${new Date(b.createdAt).toLocaleString()}</div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn secondary" onclick="exportExecutionBatch('${b.id}')">Export batch CSV</button>
+      <button class="btn secondary" onclick="setBatchStatus('${b.id}','executed')">Mark executed in Vendoo</button>
+      <button class="btn good" onclick="setBatchStatus('${b.id}','verified')">Mark verified</button>
+    </div>
+  </div>`).join(""):`<div class="empty-state">No execution batches yet.</div>`;
+}
+
 async function importInventoryFile(e){const f=e.target.files[0];if(!f)return;try{const ext=f.name.toLowerCase().split(".").pop();if(!["json","csv","tsv"].includes(ext))throw new Error("Choose a JSON, CSV, or TSV file.");let t=await f.text(),raw=[];if(f.name.toLowerCase().endsWith(".json")){const o=JSON.parse(t.replace(/^\ufeff/,""));raw=Array.isArray(o)?o:(o.inventory||o.items||o.listings||[])}else raw=parseCSV(t,f.name.toLowerCase().endsWith(".tsv")?"\t":",");const src=importSource.value||"Generic",items=raw.map((r,i)=>adapt(r,src,i)).filter(x=>x.title&&x.title!=="Untitled");if(!items.length)throw new Error("No recognizable inventory rows were found.");buildRecon(items);importMsg.textContent=`Loaded ${items.length} ${src} item(s) for reconciliation.`}catch(err){importMsg.textContent="Import failed: "+err.message}e.target.value=""}
 function bestMatch(it){let best=null,score=0;state.inventory.forEach(x=>{let s=sim(it.title,x.title);if(norm(it.brand)===norm(x.brand))s+=.15;if(it.id&&x.id&&it.id===x.id)s=1;if(s>score){score=s;best=x}});return{best,score:Math.min(score,1)}}
 const fields=[["title","Title"],["brand","Brand"],["category","Category"],["ask","Pricing"],["itemCost","Item Cost"],["status","Status"],["quantity","Quantity"],["marketplaces","Marketplaces"],["season","Season"],["recommendedAction","Recommended Action"],["notes","Notes"],["photos","Photos"]];
@@ -386,7 +509,7 @@ function saveRules(){state.settings.minimumExpectedProfit=+ruleMinProfit.value;s
 function renderActivity(){activityLog.innerHTML=state.activityLog.length?state.activityLog.slice(0,40).map(a=>`<div class="activity"><b>${a.action}</b><div class="small">${a.title||""}</div><div class="small muted">${new Date(a.at).toLocaleString()} ${a.details||""}</div></div>`).join(""):'<div class="small muted">No activity yet.</div>'}
 function clearActivity(){if(confirm("Clear activity history?")){state.activityLog=[];persist();renderActivity()}}
 function exportBackup(){download("commerce_os_backup.json",JSON.stringify({version:"1.3",state},null,2))}
-async function restoreBackupFile(e){try{const f=e.target.files[0];if(!f)return;const o=JSON.parse((await f.text()).replace(/^\ufeff/,""));if(!o.state||!Array.isArray(o.state.inventory)||!o.state.settings)throw new Error("Invalid Commerce OS backup.");state=o.state;if(!state.photoInbox)state.photoInbox=[];if(!state.activityLog)state.activityLog=[];if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(!x.vendooMeta)x.vendooMeta={};if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});persist();renderAll();toastMsg("Backup restored.")}catch(err){toastMsg(err.message)}e.target.value=""}
+async function restoreBackupFile(e){try{const f=e.target.files[0];if(!f)return;const o=JSON.parse((await f.text()).replace(/^\ufeff/,""));if(!o.state||!Array.isArray(o.state.inventory)||!o.state.settings)throw new Error("Invalid Commerce OS backup.");state=o.state;if(!state.photoInbox)state.photoInbox=[];if(!state.activityLog)state.activityLog=[];if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(x.acquisitionCostVerified===undefined)x.acquisitionCostVerified=false;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(!x.vendooMeta)x.vendooMeta={};if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});persist();renderAll();toastMsg("Backup restored.")}catch(err){toastMsg(err.message)}e.target.value=""}
 
 
 function cleanApiUrl(s){return String(s||"").trim().replace(/\/+$/,"")}
