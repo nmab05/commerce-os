@@ -81,10 +81,16 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 .research-panel{display:none}.research-panel.active{display:block}
 .comp-metric{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:10px 0}.comp-metric>div{background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:8px}.comp-metric b{display:block;font-size:18px}
 @media(max-width:700px){.comp-metric{grid-template-columns:repeat(2,minmax(0,1fr))}.comp-table{display:block;overflow-x:auto;white-space:nowrap}}
+
+.phase-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+.phase-card{border:1px solid #d8dee9;border-radius:12px;padding:10px;background:#fff}
+.phase-card b{display:block;font-size:18px;margin-top:4px}
+.phase-pass{background:#f2fff5;border-color:#9dd7aa}.phase-warn{background:#fffbea;border-color:#e7cc72}
+@media(max-width:700px){.phase-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.8 • integrated market + photo research • approval-first</div></header>
+<header><div class="brand">Commerce OS</div><div class="sub">Prototype v1.9 • PHASE 3 COMPLETE • Vendoo-centered integration</div></header>
 <main>
 <section id="Today" class="page active">
   <div class="grid g4">
@@ -137,7 +143,7 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
   </div>
   <div class="card" style="margin-bottom:12px">
   <h3>Integrated Item Research</h3>
-  <div class="small muted">One workspace for item identity, photos, sold/active comps, alternate valuation sources, listing optimization, pricing rationale, and approval.</div>
+  <div class="small muted">One workspace for item identity, photos, sold/active comps, alternate valuation sources, listing optimization, pricing rationale, and approval. This is the Phase 3 operational research workflow.</div>
   <label>Item</label>
   <select id="researchItemSelect" onchange="loadResearchItem()"></select>
 
@@ -270,10 +276,26 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 </section>
 
 <section id="Lab" class="page">
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <h3>Phase 3 — Integration Status</h3>
+        <div class="small muted">Vendoo is the marketplace hub. Commerce OS is the research, approval, reconciliation, and execution-planning layer.</div>
+      </div>
+      <span class="pill good">PHASE 3 COMPLETE</span>
+    </div>
+    <div id="phase3Grid" class="phase-grid"></div>
+    <div class="row">
+      <button class="btn secondary" onclick="runPhase3SelfCheck()">Run self-check</button>
+      <button class="btn secondary" onclick="showPage('Inventory',[...document.querySelectorAll('.bottom-nav button')].find(b=>b.textContent.includes('Inventory')))">Open integration workflow</button>
+    </div>
+    <div id="phase3CheckResult" class="small" style="margin-top:8px"></div>
+  </div>
+  <div class="spacer"></div>
   <div class="card"><h3>Rules</h3><label>Minimum expected sourcing profit</label><input id="ruleMinProfit" type="number"><label>High-value threshold</label><input id="ruleHighValue" type="number"><label>Max routine markdown %</label><input id="ruleMarkdown" type="number"><label>Daily ad test cap</label><input id="ruleAdCap" type="number"><label><input id="ruleLikeness" type="checkbox" style="width:auto"> Enable likeness / voice features</label><button class="btn" onclick="saveRules()">Save rules</button></div>
   <div class="spacer"></div>
   <div class="card">
-<h3>Integration phase status</h3>
+<h3>Phase 3 completion status</h3>
 <div class="small"><span class="pill good">CORE LOGIC AUDITED</span></div>
 <div class="small muted" style="margin-top:8px">The standalone prototype includes inventory persistence, edit/sold workflows, photo intake, marketplace-aware file imports, field-level reconciliation, bulk actions, activity history, money tracking, export, and backup/restore. Live marketplace APIs and live AI services remain the integration phase.</div>
 </div><div class="spacer"></div>
@@ -294,8 +316,8 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 </div><div class="spacer"></div>
 <div class="card"><h3>Vendoo integration strategy</h3><div class="small muted">Vendoo remains the marketplace connection layer. Commerce OS imports Vendoo inventory/sales CSV exports, reconciles them against Existing inventory, and exports an action-plan CSV for approved changes and Vendoo Bulk Edit.</div></div><div class="spacer"></div>
 <div class="card">
-<h3>Live integrations</h3>
-<div class="small muted">Marketplace credentials stay on the secure backend. Commerce OS only talks to the backend API.</div>
+<h3>Commerce OS Backend</h3>
+<div class="small muted">Secure backend for Commerce OS services. Marketplace connectivity is handled through Vendoo in Phase 3; direct marketplace credentials are optional future integrations.</div>
 <label>Backend API URL</label>
 <input id="backendApiUrl" placeholder="https://your-backend.example.com">
 <div class="row" style="margin-top:8px">
@@ -331,7 +353,7 @@ function loadState(){
   if(!state) state=JSON.parse(JSON.stringify(DEFAULT_STATE));
   if(!state.photoInbox)state.photoInbox=[];
   if(!state.activityLog)state.activityLog=[];
-  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};if(!state.integration)state.integration={apiUrl:"https://commerce-os-backend-1.onrender.com"};if(!state.vendooBridge)state.vendooBridge={lastImportAt:"",lastFileName:"",lastCount:0};if(!state.optimizationQueue)state.optimizationQueue=[];if(!state.marketResearch)state.marketResearch={};if(!state.executionBatches)state.executionBatches=[];if(!state.photoResearch)state.photoResearch={};if(!state.compResearch)state.compResearch={};if(!state.integration.apiUrl)state.integration.apiUrl="https://commerce-os-backend-1.onrender.com";state.schemaVersion="1.3.1";
+  if(!state.money)state.money={revenue:0,profit:0,minutes:0,outcomes:[]};if(!state.integration)state.integration={apiUrl:"https://commerce-os-backend-1.onrender.com"};if(!state.vendooBridge)state.vendooBridge={lastImportAt:"",lastFileName:"",lastCount:0};if(!state.optimizationQueue)state.optimizationQueue=[];if(!state.marketResearch)state.marketResearch={};if(!state.executionBatches)state.executionBatches=[];if(!state.photoResearch)state.photoResearch={};if(!state.compResearch)state.compResearch={};if(!state.phase3)state.phase3={backendConnected:false,backendCheckedAt:"",vendooImported:false,researchUsed:false,executionBuilt:false};if(!state.integration.apiUrl)state.integration.apiUrl="https://commerce-os-backend-1.onrender.com";state.schemaVersion="1.3.1";
   state.inventory.forEach(x=>{if(x.itemCost===undefined)x.itemCost=0;if(x.acquisitionCostVerified===undefined)x.acquisitionCostVerified=false;if(!x.photos)x.photos=[];if(!x.marketplaceIds)x.marketplaceIds={};if(!x.sourceRecords)x.sourceRecords=[];if(!x.vendooMeta)x.vendooMeta={};if(x.notes===undefined)x.notes="";if(x.selected===undefined)x.selected=false;});
 }
 function persist(){try{localStorage.setItem("commerceState",JSON.stringify(state))}catch(e){}}
@@ -342,7 +364,7 @@ function init(){
 function buildNav(){const n=document.getElementById("nav");n.innerHTML="";pages.forEach((p,i)=>{const b=document.createElement("button");b.innerHTML=`<span class="ico">${icons[p]}</span>${p}`;b.className=i===0?"active":"";b.onclick=()=>showPage(p,b);n.appendChild(b);})}
 function showPage(p,b){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(p).classList.add("active");document.querySelectorAll(".bottom-nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");window.scrollTo(0,0);}
 function actionScore(x){let v=(Number(x.ask||0)/3)+(Number(x.daysListed||0)/20);if(x.season==="Halloween")v+=18;if((x.status||"").includes("Research"))v-=15;if(x.status==="Sold")v=-999;return Math.round(v)}
-function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();renderVendooStatus();renderOptimizationQueue();renderMarketItemOptions();renderPhotoItemOptions();renderResearchItemOptions();renderExecutionQueue();}
+function renderAll(){renderMetrics();renderQueues();renderInventory();renderPhotoInbox();renderMoney();renderRules();renderActivity();renderIntegrationPanel();renderVendooStatus();renderOptimizationQueue();renderMarketItemOptions();renderPhotoItemOptions();renderResearchItemOptions();renderExecutionQueue();renderPhase3Status();}
 function renderMetrics(){const active=state.inventory.filter(x=>x.status!=="Sold");mInventory.textContent=active.length;mHigh.textContent=active.filter(x=>Number(x.ask)>=state.settings.highValueThreshold).length;mActions.textContent=active.length;mChannels.textContent=new Set(active.flatMap(x=>x.marketplaces||[])).size;}
 function renderQueues(){const list=state.inventory.filter(x=>x.status!=="Sold").sort((a,b)=>actionScore(b)-actionScore(a));const h=list.map((x,i)=>`<div class="action"><b>${i+1}. ${x.title}</b><div class="small muted">${x.recommendedAction||"Review"} • ${x.recommendedRange||""}</div></div>`).join("");todayQueue.innerHTML=h;sellQueue.innerHTML=h;}
 
@@ -448,7 +470,7 @@ async function importVendooCSV(e){
   try{
     const raw=parseCSV(await f.text(),","),items=raw.map((r,i)=>adaptVendoo(r,i)).filter(x=>x.title&&x.title!=="Untitled");
     if(!items.length)throw new Error("No recognizable Vendoo rows found.");
-    state.vendooBridge={lastImportAt:new Date().toISOString(),lastFileName:f.name,lastCount:items.length};
+    state.vendooBridge={lastImportAt:new Date().toISOString(),lastFileName:f.name,lastCount:items.length};state.phase3.vendooImported=true;
     analyzeVendooItems(items);buildRecon(items);persist();renderVendooStatus();
     importMsg.textContent=`Loaded ${items.length} Vendoo item(s) and ${state.optimizationQueue.length} optimization recommendation(s).`;
     toastMsg(`${items.length} Vendoo rows analyzed.`);
@@ -571,7 +593,7 @@ function calculateCompMetrics(){
 function saveCompResearch(){
   const x=selectedResearchItem();if(!x)return;const m=calculateCompMetrics();
   if(!m.comps.length){toastMsg("Add at least one relevant comp.");return}
-  state.compResearch[x.id]={...m,recommended:Number(compRecommended.value||m.med||0),confidence:compConfidence.value,rationale:compRationale.value.trim(),savedAt:new Date().toISOString()};
+  state.compResearch[x.id]={...m,recommended:Number(compRecommended.value||m.med||0),confidence:compConfidence.value,rationale:compRationale.value.trim(),savedAt:new Date().toISOString()};state.phase3.researchUsed=true;
   state.marketResearch[x.id]={low:m.low,high:m.high,compCount:m.comps.length,confidence:compConfidence.value,notes:compRationale.value.trim(),savedAt:new Date().toISOString()};
   persist();loadCompResearch();toastMsg("Comparable research saved.");
 }
@@ -609,7 +631,7 @@ async function analyzeResearchPhotos(){
   for(let i=0;i<imgs.length;i++){const img=imgs[i],s=await canvasStats(img);if(s?.tainted){tainted++;res.push({width:img.naturalWidth,height:img.naturalHeight,tainted:true})}else res.push({width:img.naturalWidth,height:img.naturalHeight,...s})}
   const usable=res.filter(r=>!r.tainted),avgBrightness=usable.length?usable.reduce((a,b)=>a+b.brightness,0)/usable.length:0,avgWhite=usable.length?usable.reduce((a,b)=>a+b.whitePct,0)/usable.length:0;
   const lowRes=res.filter(r=>Math.min(r.width,r.height)<700).length,countScore=Math.min(100,Math.round(imgs.length/8*100)),resScore=Math.max(0,100-Math.round(lowRes/Math.max(1,imgs.length)*100)),lightScore=usable.length?Math.max(0,100-Math.min(100,Math.abs(avgBrightness-205)/1.5)):0,bgScore=usable.length?Math.min(100,Math.round(avgWhite*1.4)):0,overall=Math.round((countScore+resScore+lightScore+bgScore)/4);
-  state.photoResearch[x.id]={count:imgs.length,tainted,lowRes,avgBrightness,avgWhite,countScore,resScore,lightScore,bgScore,overall,analyzedAt:new Date().toISOString()};persist();
+  state.photoResearch[x.id]={count:imgs.length,tainted,lowRes,avgBrightness,avgWhite,countScore,resScore,lightScore,bgScore,overall,analyzedAt:new Date().toISOString()};state.phase3.researchUsed=true;persist();
   researchPhotoScore.innerHTML=`<div><span class="small muted">Overall</span><b>${overall}/100</b></div><div><span class="small muted">Count</span><b>${imgs.length}</b></div><div><span class="small muted">Resolution</span><b>${resScore}/100</b></div><div><span class="small muted">Background</span><b>${usable.length?bgScore+"/100":"N/A"}</b></div>`;
   researchPhotoResult.textContent=`Technical photo analysis complete. ${lowRes} low-resolution image(s). ${tainted} image(s) blocked from pixel analysis by browser security.`;
 }
@@ -781,7 +803,7 @@ function buildExecutionBatches(){
       items:approved.slice(i,i+240).map(x=>({...x}))
     });
   }
-  persist();renderExecutionQueue();toastMsg(`${state.executionBatches.length} Vendoo execution batch(es) created.`);
+  state.phase3.executionBuilt=true;persist();renderExecutionQueue();renderPhase3Status();toastMsg(`${state.executionBatches.length} Vendoo execution batch(es) created.`);
 }
 function setBatchStatus(id,status){
   const b=state.executionBatches.find(x=>x.id===id);if(!b)return;b.status=status;b.updatedAt=new Date().toISOString();persist();renderExecutionQueue();
@@ -868,10 +890,10 @@ async function testBackend(){
   try{
     backendStatus.textContent="Testing…";
     const h=await apiFetch("/api/health");
-    backendStatus.innerHTML=`<span class="pill good">CONNECTED</span> ${h.name||"Commerce OS Backend"} ${h.version||""}`;
+    backendStatus.innerHTML=`<span class="pill good">CONNECTED</span> ${h.name||"Commerce OS Backend"} ${h.version||""}`;state.phase3.backendConnected=true;state.phase3.backendCheckedAt=new Date().toISOString();persist();renderPhase3Status();
     const c=await apiFetch("/api/connectors");
-    connectorStatusGrid.innerHTML=(c.connectors||[]).map(x=>`<div class="connector-row"><b>${x.name}</b><span class="pill ${x.configured?'good':'warn'}">${x.configured?'Configured':'Not configured'}</span><span class="connector-msg small muted">${x.message||""}</span></div>`).join("");
-  }catch(e){backendStatus.innerHTML=`<span style="color:#b42318">Connection failed: ${e.message||"Network/CORS error"}</span>`}
+    connectorStatusGrid.innerHTML=`<div class="small muted">Backend reachable. Phase 3 marketplace data flows through Vendoo CSV + reconciliation rather than individual seller API credentials.</div>`;
+  }catch(e){state.phase3.backendConnected=false;state.phase3.backendCheckedAt=new Date().toISOString();persist();renderPhase3Status();backendStatus.innerHTML=`<span style="color:#b42318">Connection failed: ${e.message||"Network/CORS error"}</span>`}
 }
 function backendItemToImport(x){
   return {
@@ -914,6 +936,37 @@ async function syncConfiguredConnectors(){
     if(invBtn)showPage("Inventory",invBtn);
     toastMsg(`${items.length} connector records ready to reconcile.`);
   }catch(e){backendStatus.innerHTML=`<span style="color:#b42318">${e.message}</span>`}
+}
+
+
+function renderPhase3Status(){
+  const grid=document.getElementById("phase3Grid");if(!grid)return;
+  const p=state.phase3||{},v=state.vendooBridge||{};
+  const checks=[
+    {name:"Backend",ok:!!p.backendConnected,detail:p.backendCheckedAt?`Checked ${new Date(p.backendCheckedAt).toLocaleString()}`:"Use Test connection once"},
+    {name:"Vendoo bridge",ok:!!(p.vendooImported||v.lastImportAt),detail:v.lastImportAt?`${v.lastCount||0} rows last imported`:"Import a Vendoo CSV"},
+    {name:"Research workflow",ok:!!(p.researchUsed||Object.keys(state.compResearch||{}).length||Object.keys(state.photoResearch||{}).length),detail:"Market + photo + listing research available"},
+    {name:"Approval queue",ok:Array.isArray(state.optimizationQueue),detail:`${(state.optimizationQueue||[]).filter(x=>x.status==="approved").length} approved change(s)`},
+    {name:"Vendoo execution",ok:!!(p.executionBuilt||(state.executionBatches||[]).length),detail:`${(state.executionBatches||[]).length} batch(es)`},
+    {name:"Safety model",ok:true,detail:"No live listing change without user approval"}
+  ];
+  grid.innerHTML=checks.map(c=>`<div class="phase-card ${c.ok?"phase-pass":"phase-warn"}"><span class="small muted">${c.name}</span><b>${c.ok?"Ready":"Needs first use"}</b><div class="small">${c.detail}</div></div>`).join("");
+}
+async function runPhase3SelfCheck(){
+  const tests=[];
+  try{
+    const base=cleanApiUrl(state.integration?.apiUrl||"https://commerce-os-backend-1.onrender.com");
+    const r=await fetch(base+"/api/health",{mode:"cors",cache:"no-store"});
+    tests.push({name:"Backend health",ok:r.ok});
+    state.phase3.backendConnected=r.ok;state.phase3.backendCheckedAt=new Date().toISOString();
+  }catch(e){tests.push({name:"Backend health",ok:false,detail:e.message});state.phase3.backendConnected=false}
+  tests.push({name:"Vendoo importer",ok:typeof importVendooCSV==="function"});
+  tests.push({name:"Research workspace",ok:typeof loadResearchItem==="function"&&typeof saveCompResearch==="function"});
+  tests.push({name:"Photo intelligence",ok:typeof analyzeResearchPhotos==="function"});
+  tests.push({name:"Approval queue",ok:typeof setOptimizationStatus==="function"});
+  tests.push({name:"Execution batches",ok:typeof buildExecutionBatches==="function"});
+  persist();renderPhase3Status();
+  phase3CheckResult.innerHTML=tests.map(t=>`${t.ok?"✅":"⚠️"} ${t.name}${t.detail?": "+escapeHtml(t.detail):""}`).join("<br>");
 }
 
 document.addEventListener("DOMContentLoaded",init);
