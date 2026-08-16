@@ -106,7 +106,7 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
 </style>
 </head>
 <body>
-<header><div class="brand">Commerce OS</div><div class="sub">Prototype v2.2 • PHASE 4 COMPLETE • unified automation release</div></header>
+<header><div class="brand">Commerce OS</div><div class="sub">Prototype v2.3 • PHASE 5 • automated market research + approval-first execution</div></header>
 <main>
 <section id="Today" class="page active">
   <div class="card">
@@ -198,13 +198,14 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
     </div>
 
     <div class="research-auto">
-      <h3 style="font-size:16px">Research Automation</h3>
-      <div class="small muted">Launch all research sources from the item identity/photo, then paste copied result text or prices here. Commerce OS extracts price evidence, removes obvious duplicates/outliers, weights sold evidence more heavily than asking prices, and calculates a proposed valuation.</div>
+      <h3 style="font-size:16px">Automated Market Research</h3>
+      <div class="small muted">One action builds exact-item searches from title, brand, category and photo, attempts browser-accessible evidence collection, scores the evidence, and calculates a market valuation. Sources the browser cannot read automatically are clearly marked for browser-assisted review rather than treated as researched.</div>
       <div class="row" style="margin-top:8px">
-        <button class="btn primary" onclick="launchResearchPack()">Launch research pack</button>
-        <button class="btn secondary" onclick="pasteResearchClipboard()">Paste from clipboard</button>
-        <button class="btn secondary" onclick="runAutoValuation()">Calculate valuation</button>
+        <button class="btn primary" onclick="analyzeMarket()">Analyze Market</button>
+        <button class="btn secondary" onclick="launchResearchPack()">Open assisted sources</button>
+        <button class="btn secondary" onclick="pasteResearchClipboard()">Add copied evidence</button>
       </div>
+      <div id="autoSourceStatus" class="statusline"></div>
       <label>Research text / copied results</label>
       <textarea id="researchPasteBox" rows="6" placeholder="Paste eBay sold results, Google results, valuation notes, or a list of prices such as $89.99, $110, $125..."></textarea>
       <div class="grid g2">
@@ -216,6 +217,10 @@ label{display:block;font-size:12px;color:#475467;margin:8px 0 4px}
         <button class="btn secondary" onclick="clearAutoEvidence()">Clear pasted evidence</button>
       </div>
       <div id="researchAutomationStatus" class="statusline"></div>
+    </div>
+<div class="market-box">
+      <h3 style="font-size:16px">Phase 5 decision gate</h3>
+      <div class="small muted"><b>Research → Recommendation → User approval → Vendoo execution → Verification.</b> Market value is calculated independently of acquisition cost. Verified acquisition cost is used only for profitability.</div>
     </div>
 <div class="market-box">
       <h3 style="font-size:16px">Comparable evidence</h3>
@@ -593,6 +598,39 @@ function testVendooImageUrl(){
 
 
 function researchItemForAuto(){return selectedResearchItem()}
+
+async function analyzeMarket(){
+  const x=researchItemForAuto(); if(!x)return;
+  const q=researchQuery(x), img=(x.photos||[])[0]||"";
+  const sources=[
+    {name:"eBay sold",url:`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`,type:"sold"},
+    {name:"eBay active",url:`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}`,type:"active"},
+    {name:"Google",url:`https://www.google.com/search?q=${encodeURIComponent(q+" sold price comps")}`,type:"valuation"},
+    {name:"WorthPoint",url:`https://www.worthpoint.com/inventory/search?query=${encodeURIComponent(q)}`,type:"valuation"}
+  ];
+  autoSourceStatus.innerHTML="Analyzing item identity and checking public evidence sources…";
+  const report=[]; let added=0;
+  for(const s of sources){
+    try{
+      const r=await fetch(s.url,{mode:"cors",credentials:"omit"});
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      const text=await r.text();
+      const vals=robustEvidence(extractMoneyValues(text)).slice(0,20);
+      if(vals.length){
+        const rows=readCompRows(); vals.forEach(v=>rows.push({source:s.name,type:s.type,price:String(v),match:"Fair",notes:"Automatically collected public evidence; verify exact-item match"}));
+        renderCompRows(rows); added+=vals.length; report.push(`✅ ${s.name}: ${vals.length} price point(s)`);
+      }else report.push(`⚠️ ${s.name}: reachable, no reliable prices extracted`);
+    }catch(e){report.push(`↗ ${s.name}: browser-assisted review required`)}
+  }
+  if(img)report.push("📷 Photo identity available for Lens/visual-search matching");
+  if(added){runAutoValuation(); saveCompResearch();}
+  else {
+    calculateCompMetrics();
+    researchAutomationStatus.textContent="No source exposed reliable evidence directly to this browser. Use Open assisted sources; evidence is not fabricated or counted until captured.";
+  }
+  autoSourceStatus.innerHTML=report.join("<br>");
+}
+
 function launchResearchPack(){
   const x=researchItemForAuto();if(!x)return;
   const q=encodeURIComponent(researchQuery(x)), img=(x.photos||[])[0]||"";
@@ -728,7 +766,7 @@ function loadResearchItem(){
   researchProposedTitle.value=x.title||"";
   researchCurrentDescription.value=x.description||"";
   researchProposedDescription.value=x.description||"";
-  researchPackageStatus.textContent="";researchAutomationStatus.textContent="";listingResearchSummary.innerHTML=`Brand: <b>${escapeHtml(x.brand||"Unknown")}</b> • Category: <b>${escapeHtml(x.category||"Other")}</b> • Current price: <b>${moneyFmt(x.ask)}</b> • Acquisition cost: <b>${x.acquisitionCostVerified?moneyFmt(x.itemCost):"Unknown / optional"}</b>`;
+  researchPackageStatus.textContent="";researchAutomationStatus.textContent="";listingResearchSummary.innerHTML=`Brand: <b>${escapeHtml(x.brand||"Unknown")}</b> • Category: <b>${escapeHtml(x.category||"Other")}</b> • Current price: <b>${moneyFmt(x.ask)}</b> • Acquisition cost: <b>${x.acquisitionCostVerified?moneyFmt(x.itemCost):"Unknown / optional — excluded from market valuation"}</b>`;
 }
 function researchQuery(x){
   return [x.brand&&x.brand!=="Unknown"?x.brand:"",x.title,x.category].filter(Boolean).join(" ").replace(/\s+/g," ").trim();
