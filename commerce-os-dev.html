@@ -5,31 +5,36 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Commerce OS — Integrated Development Runtime</title>
 <style>
-html,body{margin:0;height:100%;background:#f7f8fb;font-family:system-ui,-apple-system,sans-serif}.bar{height:42px;display:flex;align-items:center;gap:10px;padding:0 12px;background:#111827;color:#fff;font-size:12px}.bar b{font-size:13px}.status{margin-left:auto;color:#bbf7d0}.status.warn{color:#fde68a}iframe{border:0;width:100%;height:calc(100% - 42px);display:block;background:white}
+html,body{margin:0;height:100%;background:#f7f8fb;font-family:system-ui,-apple-system,sans-serif}.bar{height:42px;display:flex;align-items:center;gap:10px;padding:0 12px;background:#111827;color:#fff;font-size:12px}.bar b{font-size:13px}.bar button{border:0;border-radius:7px;padding:6px 9px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}.status{margin-left:auto;color:#bbf7d0}.status.warn{color:#fde68a}iframe{border:0;width:100%;height:calc(100% - 42px);display:block;background:white}
 </style>
 </head>
 <body>
-<div class="bar"><b>Commerce OS Dev Runtime</b><span>Listing Optimization Intelligence enabled</span><span id="status" class="status warn">Loading…</span></div>
+<div class="bar"><b>Commerce OS Dev Runtime</b><span>Listing Optimization Intelligence enabled</span><button id="bulkBtn" disabled>Optimize top 25</button><span id="status" class="status warn">Loading…</span></div>
 <iframe id="app" src="index.html" title="Commerce OS"></iframe>
 <script>
 (function(){
-  const frame=document.getElementById('app'),status=document.getElementById('status');
+  const frame=document.getElementById('app'),status=document.getElementById('status'),bulkBtn=document.getElementById('bulkBtn');
   function loadScript(doc,src){return new Promise((resolve,reject)=>{const s=doc.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>reject(new Error('Could not load '+src));doc.body.appendChild(s)})}
+  function showBulkSummary(w,doc,result){
+    let panel=doc.getElementById('bulkOptimizerDevPanel');
+    if(!panel){panel=doc.createElement('div');panel.id='bulkOptimizerDevPanel';Object.assign(panel.style,{position:'fixed',right:'10px',top:'94px',zIndex:'2999',width:'min(420px,calc(100vw - 20px))',maxHeight:'60vh',overflow:'auto',background:'#fff',border:'1px solid #cbd5e1',borderRadius:'12px',padding:'12px',boxShadow:'0 10px 30px rgba(0,0,0,.18)',fontSize:'12px'});doc.body.appendChild(panel)}
+    const top=(result.rows||[]).slice(0,10);
+    panel.innerHTML=`<div style="display:flex;justify-content:space-between;gap:8px"><b>Bulk Listing Optimization</b><button onclick="this.parentElement.parentElement.remove()">×</button></div><div style="margin:7px 0;color:#475467">${result.rows.length} active item(s) scored • ${result.proposals} proposal(s) queued across ${result.items} item(s).</div>`+top.map((r,i)=>`<div style="padding:8px 0;border-top:1px solid #e5e7eb"><b>${i+1}. ${w.escapeHtml?w.escapeHtml(r.title):r.title}</b><div>Urgency ${r.urgency}/100 • Listing score ${r.optimizationScore}/100 • ${r.recommendationCount} recommendation(s)</div></div>`).join('');
+  }
   frame.addEventListener('load',async()=>{
     try{
       const w=frame.contentWindow,doc=frame.contentDocument;
       await loadScript(doc,'listing-optimizer.js');
       await loadScript(doc,'listing-optimizer-integration.js');
+      await loadScript(doc,'listing-optimizer-bulk.js');
       await loadScript(doc,'commerce-os-dev-selfcheck.js');
-      if(!w.CommerceOSListingOptimizer||!w.CommerceOSListingOptimizerIntegration)throw new Error('Optimizer modules did not initialize.');
+      if(!w.CommerceOSListingOptimizer||!w.CommerceOSListingOptimizerIntegration||!w.CommerceOSBulkListingOptimizer)throw new Error('Optimizer modules did not initialize.');
       const check=typeof w.runCommerceOSDevSelfCheck==='function'?w.runCommerceOSDevSelfCheck():{ok:false,tests:[]};
       if(!check.ok){const failed=(check.tests||[]).filter(t=>!t.ok).map(t=>t.name).join(', ');throw new Error('Self-check failed: '+failed)}
+      bulkBtn.disabled=false;
+      bulkBtn.onclick=()=>{const result=w.CommerceOSBulkListingOptimizer.run(25);showBulkSummary(w,doc,result)};
       status.textContent='Integrated runtime ready • self-check passed';status.classList.remove('warn');
-      const badge=doc.createElement('div');
-      badge.textContent='Listing Intelligence DEV ✓';
-      Object.assign(badge.style,{position:'fixed',right:'10px',top:'62px',zIndex:'3000',padding:'6px 9px',borderRadius:'999px',background:'#111827',color:'#fff',fontSize:'10px',fontWeight:'700',boxShadow:'0 3px 10px rgba(0,0,0,.16)'});
-      badge.title=(check.tests||[]).map(t=>`${t.ok?'PASS':'FAIL'} — ${t.name}`).join('\n');
-      doc.body.appendChild(badge);
+      const badge=doc.createElement('div');badge.textContent='Listing Intelligence DEV ✓';Object.assign(badge.style,{position:'fixed',right:'10px',top:'62px',zIndex:'3000',padding:'6px 9px',borderRadius:'999px',background:'#111827',color:'#fff',fontSize:'10px',fontWeight:'700',boxShadow:'0 3px 10px rgba(0,0,0,.16)'});badge.title=(check.tests||[]).map(t=>`${t.ok?'PASS':'FAIL'} — ${t.name}`).join('\n');doc.body.appendChild(badge);
     }catch(e){status.textContent='Integration error: '+e.message;status.classList.add('warn')}
   });
 })();
