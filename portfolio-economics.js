@@ -1,6 +1,6 @@
 /* Commerce OS — Portfolio Economics
  * Ranks active inventory by expected cash recovery and opportunity cost.
- * Uses empirical sold-history calibration when available.
+ * Uses empirical sold-history calibration and bounded performance learning when available.
  * No automatic marketplace writes.
  */
 (function(global){
@@ -30,9 +30,11 @@
     return global.state.sellthroughCalibration;
   }
   function saleProbabilityDetail(item,research,pkg){
-    const heuristic=heuristicSaleProbability(item,research,pkg),model=calibrationModel();
-    if(global.CommerceOSSellthroughCalibration&&model){const b=global.CommerceOSSellthroughCalibration.blend(item,heuristic,model);return {...b,heuristic,modelConfidence:model.confidence,soldSample:model.soldCount}}
-    return {probability:heuristic,source:'heuristic',empirical:null,heuristic,modelConfidence:'none',soldSample:0};
+    const heuristic=heuristicSaleProbability(item,research,pkg),model=calibrationModel();let detail;
+    if(global.CommerceOSSellthroughCalibration&&model){const b=global.CommerceOSSellthroughCalibration.blend(item,heuristic,model);detail={...b,heuristic,modelConfidence:model.confidence,soldSample:model.soldCount}}
+    else detail={probability:heuristic,source:'heuristic',empirical:null,heuristic,modelConfidence:'none',soldSample:0};
+    if(global.CommerceOSPerformanceLearning){const tuned=global.CommerceOSPerformanceLearning.applyProbability(detail.probability);detail={...detail,untunedProbability:detail.probability,probability:tuned,source:detail.source+'+feedback'}}
+    return detail;
   }
   function saleProbability(item,research,pkg){return saleProbabilityDetail(item,research,pkg).probability}
   function scoreItem(item){
@@ -43,10 +45,11 @@
     const trappedCapital=cost>0?cost:Math.min(ask*.2,25),agePenalty=clamp(age/730,0,1);
     const listingDeficit=pkg?(100-pkg.scores.overall)/100:.5,photoDeficit=photo.overall?Math.max(0,100-num(photo.overall))/100:.25,coverageDeficit=(item.marketplaces||[]).length<=1?.6:(item.marketplaces||[]).length===2?.25:0;
     const opportunity=trappedCapital*(.5+agePenalty)+mv*(listingDeficit*.18+photoDeficit*.08+coverageDeficit*.08);
-    const priorityScore=clamp(Math.round(expectedCash*.55+expectedGrossMargin*.25+opportunity*.35),0,100);
-    return {itemId:item.id,title:item.title,ask,cost,marketValue:mv,probability,probabilitySource:probabilityDetail.source,empiricalProbability:probabilityDetail.empirical,heuristicProbability:probabilityDetail.heuristic,calibrationConfidence:probabilityDetail.modelConfidence,soldSample:probabilityDetail.soldSample,expectedCash,expectedGrossMargin,trappedCapital,ageDays:age,priorityScore,listingScore:pkg?.scores.overall??null,marketplaces:(item.marketplaces||[]).length};
+    const priorityScore=global.CommerceOSPerformanceLearning?global.CommerceOSPerformanceLearning.applyPriority({expectedCash,expectedGrossMargin,opportunity}):clamp(Math.round(expectedCash*.55+expectedGrossMargin*.25+opportunity*.35),0,100);
+    const row={itemId:item.id,title:item.title,ask,cost,marketValue:mv,probability,probabilitySource:probabilityDetail.source,empiricalProbability:probabilityDetail.empirical,heuristicProbability:probabilityDetail.heuristic,calibrationConfidence:probabilityDetail.modelConfidence,soldSample:probabilityDetail.soldSample,expectedCash,expectedGrossMargin,trappedCapital,ageDays:age,priorityScore,listingScore:pkg?.scores.overall??null,marketplaces:(item.marketplaces||[]).length};
+    return row;
   }
-  function rank(){return (global.state?.inventory||[]).filter(x=>String(x.status).toLowerCase()!=='sold').map(scoreItem).sort((a,b)=>b.priorityScore-a.priorityScore||b.expectedCash-a.expectedCash)}
+  function rank(){const rows=(global.state?.inventory||[]).filter(x=>String(x.status).toLowerCase()!=='sold').map(scoreItem).sort((a,b)=>b.priorityScore-a.priorityScore||b.expectedCash-a.expectedCash);if(global.CommerceOSPerformanceLearning)rows.slice(0,100).forEach(global.CommerceOSPerformanceLearning.captureForecast);return rows}
   function queueTop(limit=25){
     const rows=rank().slice(0,Math.max(1,limit));let queued=0;global.state.optimizationQueue=global.state.optimizationQueue||[];
     rows.forEach(r=>{const item=(global.state.inventory||[]).find(x=>x.id===r.itemId);if(!item)return;const action=`Prioritize for cash recovery — expected cash $${r.expectedCash.toFixed(2)} at ${(r.probability*100).toFixed(0)}% sale probability`;const duplicate=global.state.optimizationQueue.some(q=>q.itemId===item.id&&q.type==='portfolio-priority'&&q.status!=='rejected');if(duplicate)return;if(typeof global.proposal==='function')global.state.optimizationQueue.unshift(global.proposal(item,'portfolio-priority',r.priorityScore>=70?'high':'medium','Action','Routine queue',action,`Portfolio economics score ${r.priorityScore}/100; market value $${r.marketValue.toFixed(2)}; expected gross margin $${r.expectedGrossMargin.toFixed(2)}; ${r.ageDays} days listed; probability source ${r.probabilitySource} using ${r.soldSample} sold record(s).`));queued++});
