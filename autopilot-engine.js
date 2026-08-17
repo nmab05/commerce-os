@@ -8,7 +8,9 @@
   const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
   const sold=x=>String(x.status||'').toLowerCase()==='sold';
   function evidenceFor(item){
-    const stale=global.CommerceOSDecisionPolicyLearning?global.CommerceOSDecisionPolicyLearning.decide(item,global.state):global.CommerceOSStaleInventory?.decide(item,global.state);
+    const stale=global.CommerceOSDecisionPolicy?.choose
+      ? global.CommerceOSDecisionPolicy.choose(item,global.state)
+      : global.CommerceOSStaleInventory?.decide(item,global.state);
     const econ=global.CommerceOSPortfolioEconomics?.scoreItem(item);
     const research=(global.state.compResearch&&global.state.compResearch[item.id])||{};
     const photo=(global.state.photoResearch&&global.state.photoResearch[item.id])||{};
@@ -29,7 +31,7 @@
     const expectedCash=num(econ.expectedCash);
     const probability=num(econ.probability);
     const evidenceConfidence=(e.research.confidence||'Low');
-    const effect=stale.learnedEffect||null;
+    const effect=stale.effectEvidence||null;
     let impact=Math.round(urgency*.38+economic*.42+(100-listingScore)*.20);
     if(effect&&effect.confidence==='high')impact+=8;
     else if(effect&&effect.confidence==='medium')impact+=4;
@@ -39,9 +41,9 @@
     if(stale.reasons?.length)reasons.push(...stale.reasons);
     if(expectedCash)reasons.push(`expected cash $${expectedCash.toFixed(2)}`);
     if(probability)reasons.push(`${Math.round(probability*100)}% sale probability`);
-    if(effect)reasons.push(`experiment effect ${effect.score>=0?'+':''}${effect.score.toFixed(1)} (${effect.confidence})`);
+    if(effect)reasons.push(`experiment effect ${effect.score>=0?'+':''}${effect.score.toFixed(2)} (${effect.confidence})`);
     const p=actionField(action,item,e);
-    return {itemId:item.id,title:item.title,action,impactScore:impact,priority:impact>=70?'high':impact>=40?'medium':'low',field:p.field,current:p.current,proposed:p.proposed,reasons,evidenceConfidence,expectedCash,probability,listingScore,staleScore:urgency,economicScore:economic,probabilitySource:econ.probabilitySource||'heuristic',learnedEffect:effect};
+    return {itemId:item.id,title:item.title,action,impactScore:impact,priority:impact>=70?'high':impact>=40?'medium':'low',field:p.field,current:p.current,proposed:p.proposed,reasons,evidenceConfidence,expectedCash,probability,listingScore,staleScore:urgency,economicScore:economic,probabilitySource:econ.probabilitySource||'heuristic',effectEvidence:effect,baseAction:stale.baseAction||action};
   }
   function rank(){return (global.state.inventory||[]).filter(x=>!sold(x)).map(scoreItem).sort((a,b)=>b.impactScore-a.impactScore||b.expectedCash-a.expectedCash)}
   function queue(limit=25){
