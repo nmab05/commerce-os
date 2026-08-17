@@ -20,11 +20,15 @@ html,body{margin:0;height:100%;background:#f7f8fb;font-family:system-ui,-apple-s
       const w=frame.contentWindow,doc=frame.contentDocument;
       await loadScript(doc,'listing-optimizer.js');
       await loadScript(doc,'listing-optimizer-integration.js');
+      await loadScript(doc,'commerce-os-dev-selfcheck.js');
       if(!w.CommerceOSListingOptimizer||!w.CommerceOSListingOptimizerIntegration)throw new Error('Optimizer modules did not initialize.');
-      status.textContent='Integrated runtime ready';status.classList.remove('warn');
+      const check=typeof w.runCommerceOSDevSelfCheck==='function'?w.runCommerceOSDevSelfCheck():{ok:false,tests:[]};
+      if(!check.ok){const failed=(check.tests||[]).filter(t=>!t.ok).map(t=>t.name).join(', ');throw new Error('Self-check failed: '+failed)}
+      status.textContent='Integrated runtime ready • self-check passed';status.classList.remove('warn');
       const badge=doc.createElement('div');
-      badge.textContent='Listing Intelligence DEV';
+      badge.textContent='Listing Intelligence DEV ✓';
       Object.assign(badge.style,{position:'fixed',right:'10px',top:'62px',zIndex:'3000',padding:'6px 9px',borderRadius:'999px',background:'#111827',color:'#fff',fontSize:'10px',fontWeight:'700',boxShadow:'0 3px 10px rgba(0,0,0,.16)'});
+      badge.title=(check.tests||[]).map(t=>`${t.ok?'PASS':'FAIL'} — ${t.name}`).join('\n');
       doc.body.appendChild(badge);
     }catch(e){status.textContent='Integration error: '+e.message;status.classList.add('warn')}
   });
