@@ -13,6 +13,7 @@
     add('Stale engine',!!global.CommerceOSStaleInventory&&typeof global.CommerceOSStaleInventory.decide==='function');
     add('Sell-through calibration',!!global.CommerceOSSellthroughCalibration);
     add('Performance learning',!!global.CommerceOSPerformanceLearning);
+    add('Performance forecast API',typeof global.CommerceOSPerformanceLearning?.captureForecast==='function');
     add('Portfolio economics',!!global.CommerceOSPortfolioEconomics&&typeof global.CommerceOSPortfolioEconomics.rank==='function');
     add('Experiment framework',!!global.CommerceOSExperiments);
     add('Experiment approval guard',!!global.CommerceOSExperimentApproval);
@@ -31,6 +32,7 @@
       add('Autopilot excludes sold items',!rows.some(r=>String((global.state.inventory||[]).find(x=>String(x.id)===String(r.itemId))?.status||'').toLowerCase()==='sold'));
       add('Autopilot one row per item',new Set(rows.map(r=>String(r.itemId))).size===rows.length);
       add('Autopilot learned-policy wiring',!global.CommerceOSDecisionPolicy||rows.every(r=>Object.prototype.hasOwnProperty.call(r,'baseAction')&&Object.prototype.hasOwnProperty.call(r,'effectEvidence')));
+      add('Autopilot learning payload',rows.every(r=>['marketValue','expectedCash','expectedGrossMargin','probability'].every(k=>Object.prototype.hasOwnProperty.call(r,k))));
       add('Self-check is non-mutating',before===(global.state.optimizationQueue||[]).length);
     }catch(e){add('Autopilot smoke test',false,e.message)}
     const failed=tests.filter(t=>!t.ok),result={ok:failed.length===0,checkedAt:new Date().toISOString(),passed:tests.length-failed.length,failed:failed.length,tests};
