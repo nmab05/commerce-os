@@ -43,11 +43,12 @@
     if(probability)reasons.push(`${Math.round(probability*100)}% sale probability`);
     if(effect)reasons.push(`experiment effect ${effect.score>=0?'+':''}${effect.score.toFixed(2)} (${effect.confidence})`);
     const p=actionField(action,item,e);
-    return {itemId:item.id,title:item.title,action,impactScore:impact,priority:impact>=70?'high':impact>=40?'medium':'low',field:p.field,current:p.current,proposed:p.proposed,reasons,evidenceConfidence,expectedCash,probability,listingScore,staleScore:urgency,economicScore:economic,probabilitySource:econ.probabilitySource||'heuristic',effectEvidence:effect,baseAction:stale.baseAction||action};
+    return {itemId:item.id,title:item.title,action,impactScore:impact,priority:impact>=70?'high':impact>=40?'medium':'low',field:p.field,current:p.current,proposed:p.proposed,reasons,evidenceConfidence,expectedCash,probability,marketValue:num(econ.marketValue),expectedGrossMargin:num(econ.expectedGrossMargin),priorityScore:economic,listingScore,staleScore:urgency,economicScore:economic,probabilitySource:econ.probabilitySource||'heuristic',effectEvidence:effect,baseAction:stale.baseAction||action};
   }
   function rank(){return (global.state.inventory||[]).filter(x=>!sold(x)).map(scoreItem).sort((a,b)=>b.impactScore-a.impactScore||b.expectedCash-a.expectedCash)}
   function queue(limit=25){
-    const rows=rank().filter(r=>r.action!=='hold').slice(0,Math.max(1,limit));let queued=0;
+    const ranked=rank();
+    const rows=ranked.filter(r=>r.action!=='hold').slice(0,Math.max(1,limit));let queued=0;
     global.state.optimizationQueue=global.state.optimizationQueue||[];
     rows.forEach(r=>{
       const item=(global.state.inventory||[]).find(x=>String(x.id)===String(r.itemId));if(!item)return;
@@ -60,8 +61,10 @@
       }
     });
     global.state.autopilotRuns=global.state.autopilotRuns||[];
-    global.state.autopilotRuns.unshift({ranAt:new Date().toISOString(),itemsScored:rank().length,queued,topImpact:rows[0]?.impactScore||0});
-    if(global.CommerceOSPerformanceLearning?.captureForecasts)try{global.CommerceOSPerformanceLearning.captureForecasts(rows)}catch(e){}
+    global.state.autopilotRuns.unshift({ranAt:new Date().toISOString(),itemsScored:ranked.length,queued,topImpact:rows[0]?.impactScore||0});
+    if(global.CommerceOSPerformanceLearning?.captureForecast){
+      rows.forEach(r=>{try{global.CommerceOSPerformanceLearning.captureForecast(r)}catch(e){}});
+    }
     if(typeof global.persist==='function')global.persist();
     if(typeof global.renderOptimizationQueue==='function')global.renderOptimizationQueue();
     return {rows,queued};
