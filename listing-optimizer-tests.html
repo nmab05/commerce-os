@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Commerce OS Listing Optimizer Tests</title><style>body{font-family:system-ui;padding:24px}.pass{color:#166534}.fail{color:#b42318}pre{background:#f6f8fa;padding:12px}</style></head><body><h1>Listing Optimizer Regression Tests</h1><div id="out"></div><script src="listing-optimizer.js"></script><script>
+const tests=[];function test(name,fn){try{fn();tests.push([name,true])}catch(e){tests.push([name,false,e.message])}}function eq(a,b,msg){if(a!==b)throw new Error(msg||`${a} !== ${b}`)}function ok(v,msg){if(!v)throw new Error(msg||'assertion failed')}
+const item={id:'T1',title:'Coach brown bag',brand:'Coach',category:"Women's Bags",condition:'Pre-Owned - Good',primaryColor:'Brown',tags:'leather shoulder purse',description:'',ask:55,marketplaces:['eBay','Poshmark','Mercari'],vendooMeta:{sku:'A01-01'}};
+const research={recommended:72,confidence:'High',rationale:'INTERNAL SECRET RATIONALE',comps:[{type:'sold',price:68},{type:'sold',price:74},{type:'sold',price:79},{type:'active',price:85}]};
+test('eBay title <= 80 chars',()=>ok(CommerceOSListingOptimizer.buildTitle(item,'ebay').length<=80));
+test('buyer description excludes internal research rationale',()=>ok(!CommerceOSListingOptimizer.buildDescription(item,'ebay').includes('INTERNAL SECRET RATIONALE')));
+test('Poshmark price includes offer room',()=>ok(CommerceOSListingOptimizer.priceRecommendation(item,research,'poshmark').recommended>72));
+test('eBay price uses saved recommendation',()=>eq(CommerceOSListingOptimizer.priceRecommendation(item,research,'ebay').recommended,72));
+test('all three marketplace packages generated',()=>eq(CommerceOSListingOptimizer.optimizeAll(item,research).length,3));
+test('weak research creates research recommendation',()=>ok(CommerceOSListingOptimizer.optimize(item,{},'ebay').recommendations.some(x=>x.type==='research')));
+test('strong research produces price recommendation',()=>ok(CommerceOSListingOptimizer.optimize(item,research,'ebay').recommendations.some(x=>x.type==='price')));
+test('blank description scores zero',()=>eq(CommerceOSListingOptimizer.descriptionScore(item,'').score,0));
+out.innerHTML=tests.map(t=>`<div class="${t[1]?'pass':'fail'}">${t[1]?'✅':'❌'} ${t[0]}${t[2]?': '+t[2]:''}</div>`).join('')+`<p><b>${tests.filter(t=>t[1]).length}/${tests.length} passed</b></p>`;
+</script></body></html>
