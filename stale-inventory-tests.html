@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Stale Inventory Tests</title></head><body><pre id="out"></pre><script src="listing-optimizer.js"></script><script src="stale-inventory-engine.js"></script><script>
+const tests=[];function t(name,ok){tests.push({name,ok:!!ok})}
+const state={compResearch:{},marketResearch:{},photoResearch:{}};
+let d=CommerceOSStaleInventory.decide({id:'1',title:'Fresh',status:'Active',daysListed:30,ask:50,marketplaces:['eBay','Poshmark'],description:'A'.repeat(150),brand:'Coach',category:'Bag',photos:['1','2','3','4']},state);t('fresh quality listing can hold',d.action==='hold');
+state.compResearch['2']={recommended:50,comps:[{type:'sold'},{type:'sold'},{type:'sold'}],confidence:'High'};d=CommerceOSStaleInventory.decide({id:'2',title:'Overpriced',status:'Active',daysListed:400,ask:80,marketplaces:['eBay','Poshmark'],description:'A'.repeat(150),brand:'Coach',category:'Bag',photos:['1','2','3','4']},state);t('overpriced stale item reprices',d.action==='reprice');
+d=CommerceOSStaleInventory.decide({id:'3',title:'Ancient weak',status:'Active',daysListed:800,ask:25,marketplaces:['eBay'],description:'',brand:'Unknown',category:'Other',photos:[]},state);t('ancient weak item liquidates',d.action==='liquidate');
+d=CommerceOSStaleInventory.decide({id:'4',title:'Good stale',status:'Active',daysListed:400,ask:60,marketplaces:['eBay','Poshmark'],description:'A'.repeat(160),brand:'Coach',category:'Bag',photos:['1','2','3','4']},state);t('stale quality listing relists',d.action==='relist');
+d=CommerceOSStaleInventory.decide({id:'5',title:'Thin coverage',status:'Active',daysListed:150,ask:60,marketplaces:['eBay'],description:'A'.repeat(160),brand:'Coach',category:'Bag',photos:['1','2','3','4']},state);t('limited coverage cross-lists',d.action==='cross-list');
+const ranked=CommerceOSStaleInventory.rank([{id:'s',title:'Sold',status:'Sold'},{id:'a',title:'Active',status:'Active',daysListed:800}],state);t('sold excluded from stale ranking',ranked.length===1&&ranked[0].itemId==='a');
+out.textContent=tests.map(x=>(x.ok?'PASS':'FAIL')+' — '+x.name).join('\n')+'\n\n'+tests.filter(x=>x.ok).length+'/'+tests.length+' passed';
+</script></body></html>
