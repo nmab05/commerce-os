@@ -599,69 +599,100 @@ function testVendooImageUrl(){
 
 function researchItemForAuto(){return selectedResearchItem()}
 
-async function analyzeMarket() {
-  const item = state.items.find(i => i.id === state.selectedId);
+async function analyzeMarket(){
+  const x=researchItemForAuto();
+  if(!x)return;
 
-  if (!item) {
-    alert("Select an inventory item first.");
-    return;
-  }
+  autoSourceStatus.innerHTML="Analyzing market through Commerce OS Backend…";
+  researchAutomationStatus.textContent="";
 
-  const output = document.getElementById("marketResults");
+  try{
+    const data=await apiFetch("/api/research/market",{
+      method:"POST",
+      body:JSON.stringify({
+        title:x.title||"",
+        brand:x.brand||"",
+        category:x.category||""
+      })
+    });
 
-  if (output) {
-    output.innerHTML = "<p>Analyzing market data...</p>";
-  }
+    if(!data||data.ok===false){
+      throw new Error(data?.error||"Market research failed.");
+    }
 
-  try {
-    const response = await fetch(
-      "https://commerce-os-backend-2.onrender.com/api/research/market",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          item: item
-        })
+    const evidence=Array.isArray(data.evidence)?data.evidence:[];
+    const rows=readCompRows();
+
+    evidence.forEach(e=>{
+      const price=Number(e.price||0);
+      if(!price)return;
+
+      rows.push({
+        source:e.source||"Commerce OS Backend",
+        type:/sold/i.test(e.source||"")?"sold":
+             /active/i.test(e.source||"")?"active":"valuation",
+        price:String(price),
+        match:Number(e.score)>=0.65?"Excellent":
+              Number(e.score)>=0.4?"Good":"Fair",
+        notes:[
+          e.title||"",
+          e.url||""
+        ].filter(Boolean).join(" • ")
+      });
+    });
+
+    if(evidence.length){
+      renderCompRows(rows);
+      runAutoValuation();
+
+      const summary=data.summary||{};
+
+      if(Number(summary.recommendedPrice||summary.recommended||0)){
+        compRecommended.value=
+          Number(summary.recommendedPrice||summary.recommended).toFixed(2);
       }
-    );
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(
-        `Market research failed (${response.status}): ${text}`
-      );
+      if(summary.confidence){
+        const c=String(summary.confidence);
+        compConfidence.value=
+          c.charAt(0).toUpperCase()+c.slice(1).toLowerCase();
+      }
+
+      if(summary.low!==undefined &&
+         summary.high!==undefined &&
+         summary.median!==undefined){
+        compRationale.value=
+          `Backend market research found ${evidence.length} relevant comparable listing(s). `+
+          `Observed range ${moneyFmt(summary.low)}–${moneyFmt(summary.high)}, `+
+          `median ${moneyFmt(summary.median)}. `+
+          `Market value is based on comparable evidence and does not use acquisition cost.`;
+      }
+
+      saveCompResearch();
+
+      autoSourceStatus.innerHTML=
+        `✅ Backend research complete • ${evidence.length} comparable(s) found`;
+
+      researchAutomationStatus.innerHTML=
+        `Market analysis completed for <b>${escapeHtml(x.title)}</b>.`;
+    }else{
+      const sources=Array.isArray(data.sources)?data.sources:[];
+
+      autoSourceStatus.innerHTML=
+        sources.length
+          ? sources.map(s=>`⚠️ ${escapeHtml(s.name||"Source")}: ${escapeHtml(s.error||s.status||"no usable evidence")}`).join("<br>")
+          : "⚠️ Backend responded, but no comparable evidence was found.";
+
+      researchAutomationStatus.textContent=
+        "No reliable comparable prices were returned. No evidence was fabricated or added.";
     }
 
-    const data = await response.json();
+  }catch(e){
+    autoSourceStatus.innerHTML=
+      `<span style="color:#b42318">❌ Market research failed: ${escapeHtml(e.message||String(e))}</span>`;
 
-    console.log("Market research result:", data);
-
-    if (output) {
-      output.innerHTML = `
-        <pre style="white-space:pre-wrap;">${JSON.stringify(
-          data,
-          null,
-          2
-        )}</pre>
-      `;
-    }
-
-    return data;
-
-  } catch (error) {
-    console.error("Market research error:", error);
-
-    if (output) {
-      output.innerHTML = `
-        <p style="color:#b42318;">
-          Market research error: ${error.message}
-        </p>
-      `;
-    }
-
-    alert(`Market research error: ${error.message}`);
+    researchAutomationStatus.textContent=
+      "The Commerce OS backend could not complete this market analysis.";
   }
 }
 
